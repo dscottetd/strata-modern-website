@@ -20,50 +20,86 @@ const loadImageSource = (src: string) =>
     img.src = src
   })
 
-const PAGE_SCENES = [
+type SceneConfig = {
+  label: string
+  headline?: string[] | string
+  text: string
+  threshold: number
+  glyph: string | null
+  background?: string | { blur?: string; window?: string } | null
+}
+
+const BG = {
+  windowBlur: asset('bg-window-blur'),
+  window: asset('bg-window'),
+}
+
+const PAGE_SCENES: SceneConfig[] = [
   {
-    label: 'HOME',
+    label: 'ABOUT US',
+    headline: ['Product strategy,', 'engineering growth.'],
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
     threshold: 0.08,
-    source: null,
+    glyph: asset('light-bulb', 'png'),
+    background: BG.windowBlur,
   },
   {
     label: 'EARLY\nINNOVATION',
+    headline: [''],
     text: 'We help teams frame the right product opportunity, identify unmet needs, and turn early ideas into a stronger strategic direction.',
-    threshold: 0.1,
-    source: asset('light-bulb', 'png'),
+    threshold: 0.08,
+    glyph: asset('light-bulb', 'png'),
+    background: BG.windowBlur,
   },
   {
     label: 'ROADMAP\nALIGNMENT',
+    headline: ['Product strategy,', 'engineering growth.'],
     text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets.',
-    threshold: 0.11,
-    source: asset('light-bulb', 'png'),
+    threshold: 0.08,
+    glyph: asset('roadmap', 'png'),
+    background: BG.windowBlur,
   },
   {
     label: 'ENGINEERING\nOPTIMIZATION',
+    headline: ['Product strategy,', 'engineering growth.'],
     text: 'We identify the process, capability, and execution gaps that slow delivery so engineering teams can move faster without sacrificing quality.',
-    threshold: .4,
-    source: asset('light-bulb', 'png'),
+    threshold: 0.08,
+    glyph: asset('light-bulb', 'png'),
+    background: BG.windowBlur,
   },
   {
     label: 'TARGET\nSCREENING',
+    headline: ['Product strategy,', 'engineering growth.'],
     text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value.',
-    threshold: 0.13,
-    source: asset('light-bulb', 'png'),
+    threshold: 0.08,
+    glyph: asset('light-bulb', 'png'),
+    background: BG.windowBlur,
   },
   {
     label: 'TECHNICAL\nDUE DILIGENCE',
+    headline: ['Product strategy,', 'engineering growth.'],
     text: 'We pressure-test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
-    threshold: 0.11,
-    source: asset('light-bulb', 'png'),
+    threshold: 0.08,
+    glyph: asset('light-bulb', 'png'),
+    background: BG.windowBlur,
   },
   {
     label: 'POST MERGER\nINTEGRATION',
+    headline: ['Product strategy,', 'engineering growth.'],
     text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum.',
-    threshold: 0.2,
-    source: asset('light-bulb', 'png'),
+    threshold: 0.08,
+    glyph: asset('light-bulb', 'png'),
+    background: BG.windowBlur,
   },
-] as const
+  {
+    label: 'CONTACT US',
+    headline: ['From concept to', 'clinical momentum.'],
+    text: 'We help teams align strategy, execution, and delivery across the product lifecycle so innovation turns into measurable outcomes.',
+    threshold: 1,
+    glyph: null,
+    background: BG.window,
+  },
+]
 
 function makeGlyphCanvas(label: string, variation: number) {
   const c = document.createElement('canvas')
@@ -96,9 +132,13 @@ function makeGlyphCanvas(label: string, variation: number) {
   return c
 }
 
-const BG = {
-  windowBlur: asset('bg-window-blur'),
-  window: asset('bg-window'),
+const resolveBackground = (scene: SceneConfig | undefined) => {
+  if (!scene?.background) return { blur: null, window: null }
+  if (typeof scene.background === 'string') return { blur: scene.background, window: scene.background }
+  return {
+    blur: scene.background.blur ?? null,
+    window: scene.background.window ?? null,
+  }
 }
 
 const smooth = (a: number, b: number, v: number) => {
@@ -106,9 +146,32 @@ const smooth = (a: number, b: number, v: number) => {
   return t * t * (3 - 2 * t)
 }
 
-const chapterOf = (p: number) => smooth(0.12, 0.3, p) + smooth(0.42, 0.6, p)
-const releaseOf = (p: number) => smooth(0.7, 0.9, p)
-const STOPS = [0, 0.36, 0.64, 1]
+const SCENE_STOPS = [0, 0.12, 0.25, 0.42, 0.58, 0.72, 0.86, 1]
+
+const sceneProgressForIndex = (index: number) => SCENE_STOPS[Math.min(Math.max(index, 0), SCENE_STOPS.length - 1)]
+
+const sceneIndexForProgress = (p: number) => {
+  const clamped = Math.min(1, Math.max(0, p))
+  for (let i = SCENE_STOPS.length - 1; i >= 0; i -= 1) {
+    if (clamped >= SCENE_STOPS[i]) return i
+  }
+  return 0
+}
+
+const chapterOf = (p: number) => {
+  const index = sceneIndexForProgress(p)
+  const start = SCENE_STOPS[index]
+  const end = SCENE_STOPS[Math.min(index + 1, SCENE_STOPS.length - 1)]
+  const local = end <= start ? 0 : (p - start) / (end - start)
+  return index + smooth(0, 1, local)
+}
+
+const releaseOf = (p: number) => {
+  const index = sceneIndexForProgress(p)
+  if (index < PAGE_SCENES.length - 1) return 0
+  if (p < 0.94) return 0
+  return smooth(0.94, 1, p)
+}
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(
@@ -135,15 +198,14 @@ export default function App() {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [activeSceneIndex, setActiveSceneIndex] = useState(0)
 
-  const sceneIndexForProgress = (p: number) => {
-    if (p >= 0.9) return 6
-    if (p >= 0.7) return 5
-    if (p >= 0.55) return 4
-    if (p >= 0.38) return 3
-    if (p >= 0.22) return 2
-    if (p >= 0.1) return 1
-    return 0
-  }
+  const visibleScene = PAGE_SCENES[Math.min(activeSceneIndex, PAGE_SCENES.length - 1)]
+  const visibleBackground = resolveBackground(visibleScene)
+  const headlineLines = Array.isArray(visibleScene.headline)
+    ? visibleScene.headline
+    : (typeof visibleScene.headline === 'string' && visibleScene.headline.trim().length > 0
+      ? visibleScene.headline.split(/\s*\|\s*/)
+      : [])
+  const shouldDisplaySceneText = activeSceneIndex === PAGE_SCENES.length - 1 || progressRef.current < 0.95
 
   useEffect(() => {
     let alive = true
@@ -158,9 +220,9 @@ export default function App() {
         const canvas = canvasRef.current
         if (!alive || !stage || !canvas) return
 
-        const scenes: Scene[] = await Promise.all(PAGE_SCENES.map(async ({ label, threshold, source }, index) => {
-          const sceneSource = source
-            ? await loadImageSource(source).catch(() => makeGlyphCanvas(label, index))
+        const scenes: Scene[] = await Promise.all(PAGE_SCENES.map(async ({ label, threshold, glyph }, index) => {
+          const sceneSource = glyph
+            ? await loadImageSource(glyph).catch(() => makeGlyphCanvas(label, index))
             : makeGlyphCanvas(label, index)
 
           return {
@@ -168,10 +230,10 @@ export default function App() {
             threshold,
             rect: (w, h, m) => {
               const hh = m ? Math.min(h * 0.72, (w * 0.96) / 0.7) : h * 0.9
-              const scale = 0.8
+              const scale = 0.64
               return {
                 cx: m ? w * 0.5 : w * 0.58,
-                cy: h * (m ? 0.56 : 0.54),
+                cy: h * (m ? 0.49 : 0.46),
                 w: hh * 0.7 * scale,
                 h: hh * scale,
               }
@@ -322,26 +384,11 @@ export default function App() {
       const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } })
       tl
         .to(target, { p: 1, duration: 1, onUpdate: () => apply(target.p) }, 0)
-        .to('.sg-head', { opacity: 0, y: -20, duration: 0.05 }, 0.04)
         .to('.sg-bg--wblur', { opacity: 1, duration: 0.1 }, 0.48)
         .to('.sg-bg--window', { opacity: 1, duration: 0.14 }, 0.74)
         .fromTo('.sg-bg', { scale: 1.08 }, { scale: 1, duration: 1 }, 0)
-        .to('.sg-ch--1', { opacity: 0, y: -12, duration: 0.05 }, 0.12)
-        .fromTo('.sg-ch--2', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.22)
-        .to('.sg-ch--2', { opacity: 0, y: -12, duration: 0.05 }, 0.34)
-        .fromTo('.sg-ch--3', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.38)
-        .to('.sg-ch--3', { opacity: 0, y: -12, duration: 0.05 }, 0.52)
-        .fromTo('.sg-ch--4', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.58)
-        .to('.sg-ch--4', { opacity: 0, y: -12, duration: 0.05 }, 0.69)
-        .fromTo('.sg-ch--5', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.75)
-        .to('.sg-ch--5', { opacity: 0, y: -12, duration: 0.05 }, 0.84)
-        .fromTo('.sg-ch--6', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.9)
-        .to('.sg-ch--6', { opacity: 0, y: -12, duration: 0.05 }, 0.94)
-        .fromTo('.sg-ch--7', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.96)
-        .to('.sg-ch--7', { opacity: 0, y: -12, duration: 0.05 }, 0.9)
         .to('.sg-shade', { opacity: 0.15, duration: 0.14 }, 0.74)
         .to('.sg-dock', { opacity: 0, y: -12, duration: 0.05 }, 0.98)
-        .fromTo('.sg-final', { opacity: 0, y: 30, pointerEvents: 'none' }, { opacity: 1, y: 0, pointerEvents: 'auto', duration: 0.07 }, 0.95)
 
       stRef.current = ScrollTrigger.create({
         trigger: track,
@@ -350,11 +397,8 @@ export default function App() {
         animation: reduced ? undefined : tl,
         scrub: reduced ? false : 0.7,
         onUpdate(self) {
-          if (self.progress >= 0.8) {
-            gsap.set('.sg-ch--7', { opacity: 0, y: -12 })
-          }
           if (!reduced) return
-          const p = self.progress > 0.85 ? 1 : self.progress > 0.55 ? STOPS[2] : self.progress > 0.2 ? STOPS[1] : 0
+          const p = SCENE_STOPS[sceneIndexForProgress(self.progress)]
           tl.progress(p)
           apply(p)
         },
@@ -378,15 +422,18 @@ export default function App() {
   }
 
   const next = () => {
-    const p = progressRef.current
-    const n = STOPS.find((s) => s > p + 0.02) ?? 1
-    scrollToProgress(n)
+    const currentIndex = sceneIndexForProgress(progressRef.current)
+    const nextIndex = Math.min(currentIndex + 1, PAGE_SCENES.length - 1)
+    setActiveSceneIndex(nextIndex)
+    scrollToProgress(sceneProgressForIndex(nextIndex))
   }
 
-  const pulseCentre = () => {
-    const s = stageRef.current
-    if (s) fieldRef.current?.pulse(s.clientWidth * (s.clientWidth < 700 ? 0.5 : 0.62), s.clientHeight * 0.55, 1.2)
+  const goHome = () => {
+    setActiveSceneIndex(0)
+    scrollToProgress(0)
   }
+
+  const isFinalScene = activeSceneIndex === PAGE_SCENES.length - 1 || progressRef.current >= 0.99
 
   return (
     <main className="sg-root" data-state={state}>
@@ -394,8 +441,12 @@ export default function App() {
         <div ref={stageRef} className="sg-stage">
           <div className="sg-bg" aria-hidden="true">
             <div className="sg-bg__in">
-              <img className="sg-bg__img sg-bg--wblur" src={BG.windowBlur} alt="" />
-              <img className="sg-bg__img sg-bg--window" src={BG.window} alt="" />
+              {visibleBackground.blur && (
+                <img className="sg-bg__img sg-bg--wblur" src={visibleBackground.blur} alt="" />
+              )}
+              {visibleBackground.window && (
+                <img className="sg-bg__img sg-bg--window" src={visibleBackground.window} alt="" />
+              )}
             </div>
           </div>
           <div className="sg-shade" aria-hidden="true" />
@@ -410,43 +461,39 @@ export default function App() {
             <span>Strata Scientific</span>
             <span className="sg-top__r" style={{ color: '#fff', justifySelf: 'end' }}>hello@stratascientific.com</span>
           </header>
-          <h1 className="sg-head">
-            <span className="ln"><span className="li">Product strategy,</span></span>
-            <span className="ln"><span className="li"><em>engineering growth.</em></span></span>
-          </h1>
-          <div className="sg-sub" style={{ opacity: progressRef.current >= 0.95 ? 0 : 1 }}>
-            <p className="sg-sub__in">
-              {state === 'error'
-                ? 'Some images didn’t load. Check your connection and reload.'
-                : PAGE_SCENES[activeSceneIndex].text}
-            </p>
-          </div>
-          {PAGE_SCENES.map((scene, index) => (
+          {headlineLines.length > 0 && (
+            <h1 className="sg-head">
+              {headlineLines.map((line, index) => (
+                <span key={`${line}-${index}`} className="ln">
+                  <span className="li">{index === 1 ? <em>{line}</em> : line}</span>
+                </span>
+              ))}
+            </h1>
+          )}
+          <div className="sg-copy">
             <p
-              key={scene.label}
-              className={`sg-ch sg-ch--${index + 1}`}
-              aria-hidden={index !== activeSceneIndex}
-              style={index === 0 ? undefined : undefined}
+              key={visibleScene.label}
+              className="sg-ch sg-ch--active"
+              aria-live="polite"
             >
-              <span className="sg-ch__in">{scene.label}</span>
+              <span className="sg-ch__in">{visibleScene.label}</span>
             </p>
-          ))}
-          <div className="sg-dock">
-            <div className="sg-dock__in">
-              <button type="button" onClick={pulseCentre} disabled={state !== 'ready'}>Pulse</button>
-              <button type="button" onClick={next}>Next service ↓</button>
+            <div className={`sg-sub ${shouldDisplaySceneText ? 'sg-sub--visible' : 'sg-sub--hidden'}`}>
+              <p className="sg-sub__in">
+                {state === 'error'
+                  ? 'Some images didn’t load. Check your connection and reload.'
+                  : visibleScene.text}
+              </p>
             </div>
           </div>
-          <div className="sg-final">
-            <p className="sg-final__kicker">Strata Scientific</p>
-            <h2 className="sg-final__title">
-              From concept to <br />
-              <em>clinical momentum.</em>
-            </h2>
-            <p className="sg-final__body">We help teams align strategy, execution, and delivery across the product lifecycle so innovation turns into measurable outcomes.</p>
-            <button type="button" className="sg-final__btn" onClick={() => scrollToProgress(0)}>
-              Restart <span aria-hidden="true">↑</span>
-            </button>
+          <div className="sg-dock">
+            <div className="sg-dock__in">
+              {isFinalScene ? (
+                <button type="button" onClick={goHome} disabled={state !== 'ready'}>Home</button>
+              ) : (
+                <button type="button" onClick={next}>Next ↓</button>
+              )}
+            </div>
           </div>
           {state === 'loading' && (
             <div className="sg-loader" role="status">
