@@ -47,6 +47,48 @@ function loadImage(src: string) {
   })
 }
 
+function makeBulbFill() {
+  const c = document.createElement('canvas')
+  c.width = 1000
+  c.height = 1200
+  const ctx = c.getContext('2d')!
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, c.width, c.height)
+  ctx.fillStyle = '#fff'
+  ctx.font = '600 20px "IBM Plex Mono", ui-monospace, monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+
+  const rowGlyphs = ['.', '-', ':', '+', '1']
+  for (let y = 690; y <= 1090; y += 28) {
+    const row = (y - 690) / 28
+    const spread = 110 + row * 22
+    const left = 500 - spread
+    const right = 500 + spread
+    for (let x = left; x <= right; x += 28) {
+      const g = rowGlyphs[(row + Math.floor(x / 42)) % rowGlyphs.length]
+      if (x < 340 || x > 660) continue
+      if (y > 980 && x > 610) continue
+      ctx.fillText(g, x, y)
+    }
+  }
+
+  for (let i = 0; i < 12; i++) {
+    const x = 360 + i * 26
+    const y = 1040 + ((i % 4) * 6)
+    if (x > 620) continue
+    ctx.fillText('-', x, y)
+  }
+
+  for (let i = 0; i < 8; i++) {
+    const x = 430 + i * 20
+    const y = 1085 + ((i % 2) * 10)
+    ctx.fillText('.', x, y)
+  }
+
+  return c
+}
+
 /** the wordmark, typed white on black so it can be sampled like a photo */
 function wordmark(lines: string[]) {
   const fs = 260
@@ -100,6 +142,8 @@ export default function SignalHero() {
         const wordDesk = wordmark(['Oversight'])
         const wordMob = wordmark(['Over', 'sight'])
 
+        const bulbFill = makeBulbFill()
+
         const scenes: Scene[] = [
           {
             source: bulb,
@@ -110,11 +154,11 @@ export default function SignalHero() {
             },
           },
           {
-            source: bulb,
-            threshold: 0.18,
+            source: bulbFill,
+            threshold: 0.24,
             rect: (w, h, m) => {
-              const hh = m ? Math.min(h * 0.68, (w * 0.96) / 0.72) : h * 0.82
-              return { cx: m ? w * 0.5 : w * 0.6, cy: h * (m ? 0.56 : 0.53), w: hh * 0.72, h: hh }
+              const hh = m ? Math.min(h * 0.7, (w * 0.96) / 0.7) : h * 0.9
+              return { cx: m ? w * 0.5 : w * 0.58, cy: h * (m ? 0.56 : 0.54), w: hh * 0.7, h: hh }
             },
           },
           {
@@ -273,18 +317,24 @@ export default function SignalHero() {
       const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } })
       tl
         .to(target, { p: 1, duration: 1, onUpdate: () => apply(target.p) }, 0)
-        .to('.sg-head, .sg-sub, .sg-dock', { opacity: 0, y: -20, duration: 0.05, stagger: 0.012 }, 0.04)
+        .to('.sg-head, .sg-sub', { opacity: 0, y: -20, duration: 0.05, stagger: 0.012 }, 0.04)
         .to('.sg-bg--meadow', { opacity: 1, duration: 0.1 }, 0.18)
         .to('.sg-bg--wblur', { opacity: 1, duration: 0.1 }, 0.48)
         .to('.sg-bg--window', { opacity: 1, duration: 0.14 }, 0.74)
         .fromTo('.sg-bg', { scale: 1.08 }, { scale: 1, duration: 1 }, 0)
         .to('.sg-ch--1', { opacity: 0, y: -12, duration: 0.05 }, 0.12)
-        .fromTo('.sg-ch--2', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.27)
-        .to('.sg-ch--2', { opacity: 0, y: -12, duration: 0.05 }, 0.42)
-        .fromTo('.sg-ch--3', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.57)
-        .to('.sg-ch--3', { opacity: 0, y: -12, duration: 0.05 }, 0.7)
+        .fromTo('.sg-ch--2', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.22)
+        .to('.sg-ch--2', { opacity: 0, y: -12, duration: 0.05 }, 0.34)
+        .fromTo('.sg-ch--3', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.38)
+        .to('.sg-ch--3', { opacity: 0, y: -12, duration: 0.05 }, 0.52)
+        .fromTo('.sg-ch--4', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.58)
+        .to('.sg-ch--4', { opacity: 0, y: -12, duration: 0.05 }, 0.69)
+        .fromTo('.sg-ch--5', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.75)
+        .to('.sg-ch--5', { opacity: 0, y: -12, duration: 0.05 }, 0.84)
+        .fromTo('.sg-ch--6', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.05 }, 0.9)
         .to('.sg-shade', { opacity: 0.15, duration: 0.14 }, 0.74)
-        .fromTo('.sg-final', { opacity: 0, y: 30, pointerEvents: 'none' }, { opacity: 1, y: 0, pointerEvents: 'auto', duration: 0.07 }, 0.9)
+        .to('.sg-dock', { opacity: 0, y: -12, duration: 0.05 }, 0.98)
+        .fromTo('.sg-final', { opacity: 0, y: 30, pointerEvents: 'none' }, { opacity: 1, y: 0, pointerEvents: 'auto', duration: 0.07 }, 0.95)
 
       stRef.current = ScrollTrigger.create({
         trigger: track,
@@ -349,43 +399,43 @@ export default function SignalHero() {
           />
           <div className="sg-grain" aria-hidden="true" />
           <header className="sg-top">
-            <span>Oversight Supply</span>
-            <span className="sg-top__c">Signal &amp; Soil</span>
-            <span className="sg-top__r">
-              Glyphs <b ref={countRef}>00000</b>
-            </span>
+            <span>Strata Scientific</span>
+            <span className="sg-top__r" style={{ color: '#fff', justifySelf: 'end' }}>hello@stratascientific.com</span>
           </header>
           <h1 className="sg-head">
-            <span className="ln"><span className="li">Old ground,</span></span>
-            <span className="ln"><span className="li"><em>new signal.</em></span></span>
+            <span className="ln"><span className="li">Product strategy,</span></span>
+            <span className="ln"><span className="li"><em>engineering growth.</em></span></span>
           </h1>
           <div className="sg-sub">
             <p className="sg-sub__in">
               {state === 'error'
                 ? 'Some images didn’t load. Check your connection and reload.'
                 : isTouch
-                  ? 'Heirloom seeds, sent by modern means. Drag through the glyphs to scatter them; tap to send a pulse.'
-                  : 'Heirloom seeds, sent by modern means. Move through the glyphs to scatter them; click to send a pulse.'}
+                  ? 'We help digital health, medtech, and life sciences teams turn ideas into results. Drag through the signal to see how strategy and execution align.'
+                  : 'We help digital health, medtech, and life sciences teams turn ideas into results. Move through the signal to see how strategy and execution align.'}
             </p>
           </div>
-          <p className="sg-ch sg-ch--1"><span className="sg-ch__in">I — The horse that ploughed it</span></p>
-          <p className="sg-ch sg-ch--2" aria-hidden="true">II — The poppies that came back</p>
-          <p className="sg-ch sg-ch--3" aria-hidden="true">III — The name on the packet</p>
+          <p className="sg-ch sg-ch--1"><span className="sg-ch__in">I — Early Innovation</span></p>
+          <p className="sg-ch sg-ch--2" aria-hidden="true">II — Product Roadmap Alignment</p>
+          <p className="sg-ch sg-ch--3" aria-hidden="true">III — Engineering Optimization</p>
+          <p className="sg-ch sg-ch--4" aria-hidden="true">IV — Target Screening</p>
+          <p className="sg-ch sg-ch--5" aria-hidden="true">V — Technical Due Diligence</p>
+          <p className="sg-ch sg-ch--6" aria-hidden="true">VI — Post Merger Integration</p>
           <div className="sg-dock">
             <div className="sg-dock__in">
               <button type="button" onClick={pulseCentre} disabled={state !== 'ready'}>Pulse</button>
-              <button type="button" onClick={next}>Next figure ↓</button>
+              <button type="button" onClick={next}>Next service ↓</button>
             </div>
           </div>
           <div className="sg-final">
-            <p className="sg-final__kicker">Oversight Supply · heirloom seeds</p>
+            <p className="sg-final__kicker">Product strategy, engineering, and growth aligned</p>
             <h2 className="sg-final__title">
-              The past, <br />
-              <em>in focus.</em>
+              Healthcare innovation, <br />
+              <em>delivered.</em>
             </h2>
-            <p className="sg-final__body">Seed saved by hand for a hundred summers, catalogued and sent out by people who still read the old notebooks.</p>
+            <p className="sg-final__body">Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results. We guide innovation, align roadmaps, optimize engineering, and support growth initiatives so you deliver better products faster. Email hello@stratascientific.com or call 1 (215) 776-7791.</p>
             <button type="button" className="sg-final__btn" onClick={() => scrollToProgress(0)}>
-              Scatter again <span aria-hidden="true">↑</span>
+              Start again <span aria-hidden="true">↑</span>
             </button>
           </div>
           {state === 'loading' && (

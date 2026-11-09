@@ -44,9 +44,10 @@ html.lenis, html.lenis body { height: auto; }
   display: block;
   opacity: 0;
 }
-.sg-bg--field { opacity: 1; filter: saturate(0.85) contrast(0.95); }
-.sg-bg--meadow { filter: saturate(0.8) brightness(0.85); }
-.sg-bg--wblur { filter: saturate(0.9) brightness(0.9); }
+.sg-bg--field { opacity: 0; filter: saturate(0.85) contrast(0.95); }
+.sg-bg--meadow { opacity: 0; filter: saturate(0.8) brightness(0.85); }
+.sg-bg--wblur { opacity: 1; filter: saturate(0.9) brightness(0.9); }
+.sg-bg--window { opacity: 0; filter: saturate(0.85) contrast(0.95); }
 
 .sg-shade {
   position: absolute;
@@ -89,7 +90,7 @@ html.lenis, html.lenis body { height: auto; }
   left: clamp(16px, 2.4vw, 32px);
   right: clamp(16px, 2.4vw, 32px);
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto;
   align-items: center;
   padding: clamp(14px, 1.8vw, 22px) 0 12px;
   border-bottom: 1px solid var(--sg-rule);
@@ -160,7 +161,7 @@ html.lenis, html.lenis body { height: auto; }
   vertical-align: 0;
 }
 .sg-ch__in { display: inline; }
-.sg-ch--2, .sg-ch--3 { opacity: 0; }
+.sg-ch--2, .sg-ch--3, .sg-ch--4, .sg-ch--5, .sg-ch--6 { opacity: 0; }
 
 .sg-dock { left: clamp(16px, 3vw, 44px); bottom: clamp(24px, 3.2vw, 44px); }
 .sg-dock__in {
