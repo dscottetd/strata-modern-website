@@ -1,5 +1,5 @@
-// Signal & Soil — figures typed out of glyph particles.
-// Each scene (horse, poppies, wordmark) is sampled into a grid of cells; every
+// Strata Scientific — figures typed out of glyph particles.
+// Each scene is sampled into a grid of cells; every
 // particle owns one cell per scene, springs toward it, and can be blown about.
 
 export type Scene = {
@@ -44,7 +44,7 @@ const smooth = (a: number, b: number, v: number) => {
   return t * t * (3 - 2 * t)
 }
 
-export class GlyphField {
+export class GlyphImage {
   reduced = false
   count = 0
   onCount?: (n: number) => void
@@ -119,6 +119,9 @@ export class GlyphField {
     const src = this.src(s)
     const W0 = 'naturalWidth' in src ? src.naturalWidth : src.width
     const H0 = 'naturalHeight' in src ? src.naturalHeight : src.height
+    if (!Number.isFinite(W0) || !Number.isFinite(H0) || W0 <= 0 || H0 <= 0) {
+      return { x: 0, y: 0, w: 1, h: 1 }
+    }
     const pw = 160
     const ph = Math.max(1, Math.round((pw * H0) / W0))
     const c = document.createElement('canvas')
