@@ -37,67 +37,67 @@ const BG = {
 const PAGE_SCENES: SceneConfig[] = [
   {
     label: 'ABOUT US',
-    headline: ['Product strategy,', 'engineering growth.'],
+    headline: ['Guiding Healthcare', 'Innovation.'],
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
-    background: BG.windowBlur,
+    background: null,
   },
   {
     label: 'EARLY\nINNOVATION',
-    headline: [''],
+    headline: ['Guiding Healthcare', 'Innovation.'],
     text: 'We help teams frame the right product opportunity, identify unmet needs, and turn early ideas into a stronger strategic direction.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
-    background: BG.windowBlur,
+    background: null,
   },
   {
     label: 'ROADMAP\nALIGNMENT',
-    headline: ['Product strategy,', 'engineering growth.'],
+    headline: ['Guiding Healthcare', 'Products.'],
     text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets.',
     threshold: 0.08,
-    glyph: asset('roadmap', 'png'),
-    background: BG.windowBlur,
+    glyph: asset('light-bulb', 'png'),
+    background: null,
   },
   {
     label: 'ENGINEERING\nOPTIMIZATION',
-    headline: ['Product strategy,', 'engineering growth.'],
+    headline: ['Guiding Healthcare', 'Engineering.'],
     text: 'We identify the process, capability, and execution gaps that slow delivery so engineering teams can move faster without sacrificing quality.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
-    background: BG.windowBlur,
+    background: null,
   },
   {
     label: 'TARGET\nSCREENING',
-    headline: ['Product strategy,', 'engineering growth.'],
+    headline: ['Guiding Healthcare', 'Investments.'],
     text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
-    background: BG.windowBlur,
+    background: null,
   },
   {
     label: 'TECHNICAL\nDUE DILIGENCE',
-    headline: ['Product strategy,', 'engineering growth.'],
-    text: 'We pressure-test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
+    headline: ['Guiding Healthcare', 'Investments.'],
+    text: 'We pressure test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
-    background: BG.windowBlur,
+    background: null,
   },
   {
     label: 'POST MERGER\nINTEGRATION',
-    headline: ['Product strategy,', 'engineering growth.'],
+    headline: ['Guiding Healthcare', 'Integration.'],
     text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
-    background: BG.windowBlur,
+    background: null,
   },
   {
     label: 'CONTACT US',
-    headline: ['From concept to', 'clinical momentum.'],
-    text: 'We help teams align strategy, execution, and delivery across the product lifecycle so innovation turns into measurable outcomes.',
+    headline: ['Guiding Healthcare', 'Outcomes.'],
+    text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791.',
     threshold: 1,
     glyph: null,
-    background: BG.window,
+    background: null,
   },
 ]
 
@@ -459,13 +459,27 @@ export default function App() {
           <div className="sg-grain" aria-hidden="true" />
           <header className="sg-top">
             <span>Strata Scientific</span>
-            <span className="sg-top__r" style={{ color: '#fff', justifySelf: 'end' }}>hello@stratascientific.com</span>
+            <div className="sg-top__r">
+              <a href="mailto:hello@stratascientific.com">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m3 7 9 6 9-6" />
+                </svg>
+                <span className="sg-top__label">hello@stratascientific.com</span>
+              </a>
+              <a href="tel:+12157767791">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.8 2.1Z" />
+                </svg>
+                <span className="sg-top__label">+1 215.776.7791</span>
+              </a>
+            </div>
           </header>
           {headlineLines.length > 0 && (
             <h1 className="sg-head">
               {headlineLines.map((line, index) => (
                 <span key={`${line}-${index}`} className="ln">
-                  <span className="li">{index === 1 ? <em>{line}</em> : line}</span>
+                  <span className="li">{line}</span>
                 </span>
               ))}
             </h1>
