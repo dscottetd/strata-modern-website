@@ -37,7 +37,7 @@ const BG = {
 const PAGE_SCENES: SceneConfig[] = [
   {
     label: 'ABOUT US',
-    headline: ['Guiding Healthcare', 'Innovation.'],
+    headline: ['Guiding Healthcare', 'Outcomes.'],
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
@@ -77,7 +77,7 @@ const PAGE_SCENES: SceneConfig[] = [
   },
   {
     label: 'TECHNICAL\nDUE DILIGENCE',
-    headline: ['Guiding Healthcare', 'Investments.'],
+    headline: ['Guiding Healthcare', 'Technology.'],
     text: 'We pressure test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
@@ -516,6 +516,12 @@ export default function App() {
           )}
         </div>
       </section>
+      <footer className="sg-footer">
+        <div className="sg-footer__content">
+          <div className="sg-footer__left">&copy; 2027 Strata Scientific LLC</div>
+          <div className="sg-footer__right">All Rights Reserved.</div>
+        </div>
+      </footer>
     </main>
   )
 }

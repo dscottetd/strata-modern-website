@@ -26,7 +26,7 @@ type P = {
 const GLYPHS = ['.', '·', '-', ':', '+', '=', '/', '\\', '#', '%', '*', '<', '>', '0', '1', '?', '2']
 const RAMP = [0, 1, 2, 3, 4, 5, 6, 7]
 const SCRAMBLE = [7, 8, 9, 10, 11, 12, 13, 14, 15]
-const INK = '#f4ead2'
+const INK = '#477ecb'
 
 function rng(seed: number) {
   let a = seed >>> 0
