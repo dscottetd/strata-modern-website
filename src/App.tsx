@@ -7,6 +7,8 @@ import './App.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 const asset = (n: string, ext = 'webp') => new URL(`./assets/${n}.${ext}`, import.meta.url).href
 
 const loadImageSource = (src: string) =>
@@ -29,18 +31,18 @@ type SceneConfig = {
   background?: string | { blur?: string; window?: string } | null
 }
 
-const BG = {
-  windowBlur: asset('bg-window-blur'),
-  window: asset('bg-window'),
-}
+// const BG = {
+//   windowBlur: asset('bg-window-blur'),
+//   window: asset('bg-window'),
+// }
 
 const PAGE_SCENES: SceneConfig[] = [
   {
     label: 'ABOUT US',
-    headline: ['Guiding Healthcare', 'Outcomes.'],
+    headline: ['Guiding Healthcare', 'Solutions'],
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
     threshold: 0.08,
-    glyph: asset('light-bulb', 'png'),
+    glyph: asset('anonymous', 'png'),
     background: null,
   },
   {
@@ -56,15 +58,15 @@ const PAGE_SCENES: SceneConfig[] = [
     headline: ['Guiding Healthcare', 'Products.'],
     text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets.',
     threshold: 0.08,
-    glyph: asset('light-bulb', 'png'),
+    glyph: asset('cat', 'png'),
     background: null,
   },
   {
     label: 'ENGINEERING\nOPTIMIZATION',
     headline: ['Guiding Healthcare', 'Engineering.'],
     text: 'We identify the process, capability, and execution gaps that slow delivery so engineering teams can move faster without sacrificing quality.',
-    threshold: 0.08,
-    glyph: asset('light-bulb', 'png'),
+    threshold: 0.03,
+    glyph: asset('racecar', 'png'),
     background: null,
   },
   {
@@ -72,7 +74,7 @@ const PAGE_SCENES: SceneConfig[] = [
     headline: ['Guiding Healthcare', 'Investments.'],
     text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value.',
     threshold: 0.08,
-    glyph: asset('light-bulb', 'png'),
+    glyph: asset('galaxy', 'png'),
     background: null,
   },
   {
@@ -88,15 +90,15 @@ const PAGE_SCENES: SceneConfig[] = [
     headline: ['Guiding Healthcare', 'Integration.'],
     text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum.',
     threshold: 0.08,
-    glyph: asset('light-bulb', 'png'),
+    glyph: asset('brain', 'png'),
     background: null,
   },
   {
     label: 'CONTACT US',
     headline: ['Guiding Healthcare', 'Outcomes.'],
     text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791.',
-    threshold: 1,
-    glyph: null,
+    threshold: 0.08,
+     glyph: asset('light-bulb', 'png'),
     background: null,
   },
 ]
@@ -146,33 +148,6 @@ const smooth = (a: number, b: number, v: number) => {
   return t * t * (3 - 2 * t)
 }
 
-const SCENE_STOPS = [0, 0.12, 0.25, 0.42, 0.58, 0.72, 0.86, 1]
-
-const sceneProgressForIndex = (index: number) => SCENE_STOPS[Math.min(Math.max(index, 0), SCENE_STOPS.length - 1)]
-
-const sceneIndexForProgress = (p: number) => {
-  const clamped = Math.min(1, Math.max(0, p))
-  for (let i = SCENE_STOPS.length - 1; i >= 0; i -= 1) {
-    if (clamped >= SCENE_STOPS[i]) return i
-  }
-  return 0
-}
-
-const chapterOf = (p: number) => {
-  const index = sceneIndexForProgress(p)
-  const start = SCENE_STOPS[index]
-  const end = SCENE_STOPS[Math.min(index + 1, SCENE_STOPS.length - 1)]
-  const local = end <= start ? 0 : (p - start) / (end - start)
-  return index + smooth(0, 1, local)
-}
-
-const releaseOf = (p: number) => {
-  const index = sceneIndexForProgress(p)
-  if (index < PAGE_SCENES.length - 1) return 0
-  if (p < 0.94) return 0
-  return smooth(0.94, 1, p)
-}
-
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -191,21 +166,12 @@ export default function App() {
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fieldRef = useRef<GlyphImage | null>(null)
-  const lenisRef = useRef<Lenis | null>(null)
-  const stRef = useRef<ScrollTrigger | null>(null)
-  const progressRef = useRef(0)
+  const chapterRef = useRef(0)
   const reduced = usePrefersReducedMotion()
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [activeSceneIndex, setActiveSceneIndex] = useState(0)
 
-  const visibleScene = PAGE_SCENES[Math.min(activeSceneIndex, PAGE_SCENES.length - 1)]
-  const visibleBackground = resolveBackground(visibleScene)
-  const headlineLines = Array.isArray(visibleScene.headline)
-    ? visibleScene.headline
-    : (typeof visibleScene.headline === 'string' && visibleScene.headline.trim().length > 0
-      ? visibleScene.headline.split(/\s*\|\s*/)
-      : [])
-  const shouldDisplaySceneText = activeSceneIndex === PAGE_SCENES.length - 1 || progressRef.current < 0.95
+  const visibleBackground = resolveBackground(PAGE_SCENES[activeSceneIndex])
 
   useEffect(() => {
     let alive = true
@@ -228,24 +194,25 @@ export default function App() {
           return {
             source: sceneSource,
             threshold,
-            rect: (w, h, m) => {
-              const hh = m ? Math.min(h * 0.72, (w * 0.96) / 0.7) : h * 0.9
-              const scale = 0.64
+            rect: (w, h) => {
+              const mobile = window.matchMedia('(max-width: 760px)').matches
+              const hh = mobile ? Math.min(h * 0.86, w * 0.9 / 0.7) : Math.min(h * 0.7, w * 0.4 / 0.7)
               return {
-                cx: m ? w * 0.5 : w * 0.58,
-                cy: h * (m ? 0.49 : 0.46),
-                w: hh * 0.7 * scale,
-                h: hh * scale,
+                cx: mobile ? w * 0.5 : w * 0.75,
+                cy: h * 0.5,
+                w: hh * 0.7,
+                h: hh,
               }
             },
           }
         }))
 
+        if (!alive) return
         const field = new GlyphImage(canvas, scenes)
         field.reduced = reduced
         fieldRef.current = field
         field.resize(stage.clientWidth, stage.clientHeight)
-        field.setStory(chapterOf(progressRef.current), releaseOf(progressRef.current))
+        field.setStory(chapterRef.current, 0)
         setState('ready')
 
         let running = false
@@ -267,10 +234,12 @@ export default function App() {
         sync()
 
         let rw = stage.clientWidth
+        let rh = stage.clientHeight
         const ro = new ResizeObserver(() => {
-          if (Math.abs(stage.clientWidth - rw) < 2 && field.mobile) return
+          if (Math.abs(stage.clientWidth - rw) < 2 && Math.abs(stage.clientHeight - rh) < 2) return
           rw = stage.clientWidth
-          field.resize(stage.clientWidth, stage.clientHeight)
+          rh = stage.clientHeight
+          field.resize(rw, rh)
         })
         ro.observe(stage)
 
@@ -298,8 +267,9 @@ export default function App() {
   }, [reduced, state])
 
   useEffect(() => {
+    const track = trackRef.current
     const stage = stageRef.current
-    if (!stage) return
+    if (!track || !stage) return
 
     const local = (x: number, y: number) => {
       const r = stage.getBoundingClientRect()
@@ -329,25 +299,24 @@ export default function App() {
 
     const leave = (e: PointerEvent) => e.pointerType !== 'touch' && fieldRef.current?.leave()
 
-    stage.addEventListener('pointermove', move)
-    stage.addEventListener('pointerdown', down)
-    stage.addEventListener('pointerleave', leave)
-    stage.addEventListener('touchstart', touch, { passive: true })
-    stage.addEventListener('touchmove', touch, { passive: true })
+    track.addEventListener('pointermove', move)
+    track.addEventListener('pointerdown', down)
+    track.addEventListener('pointerleave', leave)
+    track.addEventListener('touchstart', touch, { passive: true })
+    track.addEventListener('touchmove', touch, { passive: true })
 
     return () => {
-      stage.removeEventListener('pointermove', move)
-      stage.removeEventListener('pointerdown', down)
-      stage.removeEventListener('pointerleave', leave)
-      stage.removeEventListener('touchstart', touch)
-      stage.removeEventListener('touchmove', touch)
+      track.removeEventListener('pointermove', move)
+      track.removeEventListener('pointerdown', down)
+      track.removeEventListener('pointerleave', leave)
+      track.removeEventListener('touchstart', touch)
+      track.removeEventListener('touchmove', touch)
     }
   }, [])
 
   useEffect(() => {
     if (reduced) return
     const lenis = new Lenis({ lerp: 0.085 })
-    lenisRef.current = lenis
     lenis.on('scroll', ScrollTrigger.update)
     const tick = (t: number) => lenis.raf(t * 1000)
     gsap.ticker.add(tick)
@@ -355,90 +324,69 @@ export default function App() {
     return () => {
       gsap.ticker.remove(tick)
       lenis.destroy()
-      lenisRef.current = null
     }
   }, [reduced])
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const track = trackRef.current
     if (!track) return
 
     const ctx = gsap.context(() => {
-      if (!reduced) {
-        gsap
-          .timeline({ defaults: { ease: 'expo.out' }, delay: 0.15 })
-          .from('.sg-bg__in', { scale: 1.12, opacity: 0, duration: 2.4 }, 0)
-          .from('.sg-top > *', { opacity: 0, y: -8, duration: 1, stagger: 0.08 }, 0.2)
-          .from('.sg-head .li', { yPercent: 110, duration: 1.6, stagger: 0.1 }, 0.35)
-          .from('.sg-sub__in, .sg-dock__in, .sg-ch__in', { opacity: 0, y: 10, duration: 1.2, stagger: 0.1 }, 0.9)
+      const sections = Array.from(track.querySelectorAll<HTMLElement>('.sg-scene'))
+      const apply = () => {
+        const header = document.querySelector<HTMLElement>('.sg-top')
+        const top = header?.getBoundingClientRect().height ?? 0
+        const positions = sections.map((section) => section.getBoundingClientRect().top - top)
+        let index = 0
+        while (index < positions.length - 1 && positions[index + 1] <= 0) index += 1
+        const next = positions[index + 1]
+        const distance = next === undefined ? 0 : next - positions[index]
+        const local = distance > 0 ? Math.max(0, Math.min(1, -positions[index] / distance)) : 0
+        const chapter = index + (reduced ? 0 : smooth(0.65, 1, local))
+        chapterRef.current = chapter
+        setActiveSceneIndex((current) => (current === index ? current : index))
+        fieldRef.current?.setStory(chapter, 0)
       }
 
-      const target = { p: 0 }
-      const apply = (p: number) => {
-        progressRef.current = p
-        const nextIndex = sceneIndexForProgress(p)
-        setActiveSceneIndex((current) => (current === nextIndex ? current : nextIndex))
-        fieldRef.current?.setStory(chapterOf(p), releaseOf(p))
-      }
-
-      const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } })
-      tl
-        .to(target, { p: 1, duration: 1, onUpdate: () => apply(target.p) }, 0)
-        .to('.sg-bg--wblur', { opacity: 1, duration: 0.1 }, 0.48)
-        .to('.sg-bg--window', { opacity: 1, duration: 0.14 }, 0.74)
-        .fromTo('.sg-bg', { scale: 1.08 }, { scale: 1, duration: 1 }, 0)
-        .to('.sg-shade', { opacity: 0.15, duration: 0.14 }, 0.74)
-        .to('.sg-dock', { opacity: 0, y: -12, duration: 0.05 }, 0.98)
-
-      stRef.current = ScrollTrigger.create({
+      ScrollTrigger.create({
         trigger: track,
-        start: 'top top',
+        start: 'top bottom',
         end: 'bottom bottom',
-        animation: reduced ? undefined : tl,
-        scrub: reduced ? false : 0.7,
-        onUpdate(self) {
-          if (!reduced) return
-          const p = SCENE_STOPS[sceneIndexForProgress(self.progress)]
-          tl.progress(p)
-          apply(p)
-        },
+        onUpdate: apply,
+        onRefresh: apply,
       })
 
-      apply(0)
+      apply()
     }, stageRef)
 
     return () => {
-      stRef.current = null
       ctx.revert()
     }
   }, [reduced])
 
-  const scrollToProgress = (p: number) => {
-    const st = stRef.current
-    if (!st) return
-    const y = st.start + (st.end - st.start) * p
-    if (lenisRef.current) lenisRef.current.scrollTo(y, { duration: p === 0 ? 2.6 : 1.8 })
-    else window.scrollTo({ top: y, behavior: 'auto' })
-  }
-
-  const next = () => {
-    const currentIndex = sceneIndexForProgress(progressRef.current)
-    const nextIndex = Math.min(currentIndex + 1, PAGE_SCENES.length - 1)
-    setActiveSceneIndex(nextIndex)
-    scrollToProgress(sceneProgressForIndex(nextIndex))
-  }
-
-  const goHome = () => {
-    setActiveSceneIndex(0)
-    scrollToProgress(0)
-  }
-
-  const isFinalScene = activeSceneIndex === PAGE_SCENES.length - 1 || progressRef.current >= 0.99
-
   return (
-    <main className="sg-root" data-state={state}>
-      <section ref={trackRef} className="sg-track" aria-label="Strata Scientific — strategy and science in motion">
-        <div ref={stageRef} className="sg-stage">
+    <main id="top" className="sg-root" data-state={state} data-active-scene={activeSceneIndex}>
+      <a className="sg-skip" href="#scene-1">Skip to content</a>
+      <header className="sg-top">
+        <a className="sg-top__brand" href="#top">Strata Scientific</a>
+        <nav className="sg-top__r" aria-label="Contact">
+          <a href="mailto:hello@stratascientific.com" aria-label="Email Strata Scientific">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m3 7 9 6 9-6" />
+            </svg>
+            <span className="sg-top__label">hello@stratascientific.com</span>
+          </a>
+          <a href="tel:+12157767791" aria-label="Call Strata Scientific">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.8 2.1Z" />
+            </svg>
+            <span className="sg-top__label">+1 215.776.7791</span>
+          </a>
+        </nav>
+      </header>
+      <section ref={trackRef} className="sg-track" aria-label="Strata Scientific services">
+        <div ref={stageRef} className="sg-stage" aria-hidden="true">
           <div className="sg-bg" aria-hidden="true">
             <div className="sg-bg__in">
               {visibleBackground.blur && (
@@ -450,72 +398,68 @@ export default function App() {
             </div>
           </div>
           <div className="sg-shade" aria-hidden="true" />
-          <canvas
-            ref={canvasRef}
-            className="sg-glyphs"
-            role="img"
-            aria-label="A horse, then poppies, then the word Oversight, each typed out of glowing text characters"
-          />
+          <canvas ref={canvasRef} className="sg-glyphs" />
           <div className="sg-grain" aria-hidden="true" />
-          <header className="sg-top">
-            <span>Strata Scientific</span>
-            <div className="sg-top__r">
-              <a href="mailto:hello@stratascientific.com">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="3" y="5" width="18" height="14" rx="2" />
-                  <path d="m3 7 9 6 9-6" />
-                </svg>
-                <span className="sg-top__label">hello@stratascientific.com</span>
-              </a>
-              <a href="tel:+12157767791">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.8 2.1Z" />
-                </svg>
-                <span className="sg-top__label">+1 215.776.7791</span>
-              </a>
-            </div>
-          </header>
-          {headlineLines.length > 0 && (
-            <h1 className="sg-head">
-              {headlineLines.map((line, index) => (
-                <span key={`${line}-${index}`} className="ln">
-                  <span className="li">{line}</span>
+        </div>
+        <div className="sg-scenes">
+          {PAGE_SCENES.map((scene, index) => {
+            const headlineLines = Array.isArray(scene.headline)
+              ? scene.headline
+              : (typeof scene.headline === 'string' && scene.headline.trim().length > 0
+                ? scene.headline.split(/\s*\|\s*/)
+                : [])
+            const Heading = index === 0 ? 'h1' : 'h2'
+
+            return (
+              <article
+                id={`scene-${index + 1}`}
+                key={scene.label}
+                className="sg-scene"
+                aria-labelledby={`scene-${index + 1}-heading`}
+              >
+                <div className="sg-scene__content">
+                  {headlineLines.length > 0 && (
+                    <Heading id={`scene-${index + 1}-heading`} className="sg-head">
+                      {headlineLines.map((line, lineIndex) => (
+                        <span key={`${line}-${lineIndex}`} className="sg-head__line">
+                          {lineIndex === 1 ? <em>{line}</em> : line}
+                          {lineIndex < headlineLines.length - 1 ? ' ' : null}
+                        </span>
+                      ))}
+                    </Heading>
+                  )}
+                  <p className="sg-ch">{scene.label.replace(/\n/g, ' ')}</p>
+                  <p className="sg-copy">
+                    {scene.text.split(/(hello@stratascientific\.com|\+1 215\.776\.7791)/).map((part, partIndex) => {
+                      if (part === 'hello@stratascientific.com') {
+                        return <a key={partIndex} href="mailto:hello@stratascientific.com">{part}</a>
+                      }
+                      if (part === '+1 215.776.7791') {
+                        return <a key={partIndex} href="tel:+12157767791">{part}</a>
+                      }
+                      return part
+                    })}
+                  </p>
+                  {index < PAGE_SCENES.length - 1 && (
+                    <a className="sg-scene__next" href={`#scene-${index + 2}`}>
+                      Explore {PAGE_SCENES[index + 1].label.replace(/\n/g, ' ').toLowerCase()}
+                      <span aria-hidden="true">↓</span>
+                    </a>
+                  )}
+                </div>
+                <span className="sg-scene__index" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')} / {String(PAGE_SCENES.length).padStart(2, '0')}
                 </span>
-              ))}
-            </h1>
-          )}
-          <div className="sg-copy">
-            <p
-              key={visibleScene.label}
-              className="sg-ch sg-ch--active"
-              aria-live="polite"
-            >
-              <span className="sg-ch__in">{visibleScene.label}</span>
-            </p>
-            <div className={`sg-sub ${shouldDisplaySceneText ? 'sg-sub--visible' : 'sg-sub--hidden'}`}>
-              <p className="sg-sub__in">
-                {state === 'error'
-                  ? 'Some images didn’t load. Check your connection and reload.'
-                  : visibleScene.text}
-              </p>
-            </div>
-          </div>
-          <div className="sg-dock">
-            <div className="sg-dock__in">
-              {isFinalScene ? (
-                <button type="button" onClick={goHome} disabled={state !== 'ready'}>Home</button>
-              ) : (
-                <button type="button" onClick={next}>Next ↓</button>
-              )}
-            </div>
-          </div>
-          {state === 'loading' && (
-            <div className="sg-loader" role="status">
-              Loading…
-            </div>
-          )}
+              </article>
+            )
+          })}
         </div>
       </section>
+      {state === 'error' && (
+        <p className="sg-status" role="status">
+          The animation is unavailable, but all page content is still available.
+        </p>
+      )}
       <footer className="sg-footer">
         <div className="sg-footer__content">
           <div className="sg-footer__left">&copy; 2027 Strata Scientific LLC</div>

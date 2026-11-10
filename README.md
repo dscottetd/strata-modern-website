@@ -1,4 +1,15 @@
-# React + TypeScript + Vite
+# Strata Scientific website
+
+The scene copy lives in `PAGE_SCENES` in `src/App.tsx`. Each scene is rendered
+as readable HTML in document order; the decorative glyph canvas follows the
+sections as they scroll. The layout reserves a separate area for the glyph on
+mobile so it does not obscure the copy.
+
+`npm run build` prerenders the React app into `dist/index.html` before the
+client hydrates it. This keeps scene content available without JavaScript.
+Run `npm run dev` for local development and `npm run lint` to check the code.
+
+## Vite template information
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
