@@ -29,6 +29,8 @@ type SceneConfig = {
   text: string
   threshold: number
   glyph: string | null
+  /** glyph size multiplier; defaults to 1.0 */
+  glyphScale?: number
   background?: string | { blur?: string; window?: string } | null
 }
 
@@ -45,6 +47,7 @@ const PAGE_SCENES: SceneConfig[] = [
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
     threshold: 0.05,
     glyph: asset('spiral', 'png'),
+    glyphScale: 1.0,
     background: null,
   },
   {
@@ -54,6 +57,7 @@ const PAGE_SCENES: SceneConfig[] = [
     text: 'We help teams frame the right product opportunity, identify unmet needs, and turn early ideas into a stronger strategic direction.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
+    glyphScale: 0.95,
     background: null,
   },
   {
@@ -61,8 +65,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'ROADMAP\nALIGNMENT',
     headline: ['Guiding Healthcare', 'Products'],
     text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets.',
-    threshold: 0.08,
-    glyph: asset('roadmap', 'png'),
+    threshold: 0.1,
+    glyph: asset('hexagon', 'png'),
+    glyphScale: 1.1,
     background: null,
   },
   {
@@ -70,8 +75,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'ENGINEERING\nOPTIMIZATION',
     headline: ['Guiding Healthcare', 'Engineering'],
     text: 'We identify the process, capability, and execution gaps that slow delivery so engineering teams can move faster without sacrificing quality.',
-    threshold: 0.03,
-    glyph: asset('head', 'png'),
+    threshold: 0.04,
+    glyph: asset('science', 'png'),
+    glyphScale: 1.1,
     background: null,
   },
   {
@@ -79,8 +85,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'TARGET\nSCREENING',
     headline: ['Guiding Healthcare', 'Investments'],
     text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value.',
-    threshold: 0.05,
+    threshold: 0.04,
     glyph: asset('bull', 'png'),
+    glyphScale: 1.1,
     background: null,
   },
   {
@@ -88,8 +95,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'TECHNICAL\nDUE DILIGENCE',
     headline: ['Guiding Healthcare', 'Technology'],
     text: 'We pressure test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
-    threshold: 0.2,
-    glyph: asset('tree', 'png'),
+    threshold: 0.1,
+    glyph: asset('micro', 'png'),
+    glyphScale: 0.9,
     background: null,
   },
   {
@@ -97,8 +105,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'POST MERGER\nINTEGRATION',
     headline: ['Guiding Healthcare', 'Integration'],
     text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum.',
-    threshold: 0.08,
+    threshold: 0.15,
     glyph: asset('circles', 'png'),
+    glyphScale: 1.1,
     background: null,
   },
   {
@@ -106,8 +115,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'CONTACT US',
     headline: ['Guiding Healthcare', 'Outcomes'],
     text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791.',
-    threshold: 0.02,
+    threshold: 0.08,
      glyph: asset('mountain', 'png'),
+     glyphScale: 1.2,
     background: null,
   },
 ]
@@ -218,13 +228,14 @@ export default function App() {
         const canvas = canvasRef.current
         if (!alive || !stage || !canvas) return
 
-        const scenes: Scene[] = await Promise.all(PAGE_SCENES.map(async ({ label, threshold, glyph }, index) => {
+        const scenes: Scene[] = await Promise.all(PAGE_SCENES.map(async ({ label, threshold, glyph, glyphScale = 1 }, index) => {
           const sceneSource = glyph
             ? await loadImageSource(glyph).catch(() => makeGlyphCanvas(label, index))
             : makeGlyphCanvas(label, index)
 
           return {
             source: sceneSource,
+            scale: glyphScale,
             threshold,
             rect: (w, h) => {
               const mobile = window.matchMedia('(max-width: 760px)').matches
@@ -473,6 +484,8 @@ export default function App() {
     }
   }, [reduced, scrollToScene])
 
+  const isLastScene = activeSceneIndex === PAGE_SCENES.length - 1
+
   return (
     <main id="top" className="sg-root" data-state={state} data-active-scene={activeSceneIndex}>
       <a className="sg-skip" href={`#${PAGE_SCENES[0].slug}`}>Skip to content</a>
@@ -524,21 +537,30 @@ export default function App() {
               return part
             })}
           </p>
-          {activeSceneIndex < PAGE_SCENES.length - 1 && (
-            <a
-              className="sg-scene__next"
-              href={`#${PAGE_SCENES[activeSceneIndex + 1].slug}`}
-              onClick={(event) => {
-                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-                event.preventDefault()
-                const index = activeSceneIndex + 1
-                window.history.pushState(null, '', `#${PAGE_SCENES[index].slug}`)
-                scrollToScene(index)
-              }}
-            >
-              Next <span aria-hidden="true">↓</span>
-            </a>
-          )}
+          <a
+            className="sg-scene__next"
+            href={`#${PAGE_SCENES[isLastScene ? 0 : activeSceneIndex + 1].slug}`}
+            onClick={(event) => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+              event.preventDefault()
+              const index = isLastScene ? 0 : activeSceneIndex + 1
+              window.history.pushState(null, '', `#${PAGE_SCENES[index].slug}`)
+              scrollToScene(index)
+            }}
+          >
+            {isLastScene ? (
+              <>
+                Home
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" />
+                </svg>
+              </>
+            ) : (
+              <>
+                Next <span aria-hidden="true">↓</span>
+              </>
+            )}
+          </a>
         </div>
         <div className="sg-scenes">
           {PAGE_SCENES.map((scene) => (

@@ -5,6 +5,8 @@
 export type Scene = {
   /** source drawn white-on-black; brightness decides whether a cell is typed and which glyph */
   source: HTMLCanvasElement | HTMLImageElement | ((mobile: boolean) => HTMLCanvasElement)
+  /** size multiplier applied after fitting to the box; 1 (default) is the normal size */
+  scale?: number
   threshold: number
   /** figure box in stage px */
   rect: (w: number, h: number, mobile: boolean) => { cx: number; cy: number; w: number; h: number }
@@ -166,7 +168,7 @@ export class GlyphImage {
       const ar = crop.w / crop.h
       // normalise by area so wide and tall figures read at a similar size, still capped to the box
       const areaW = Math.sqrt(box.w * box.h * 0.6 * ar)
-      const fitW = Math.min(areaW, box.w, box.h * ar)
+      const fitW = Math.min(areaW, box.w, box.h * ar) * (s.scale ?? 1)
       const r = { cx: box.cx, cy: box.cy, w: fitW, h: fitW / ar }
       const cols = Math.max(4, Math.round(r.w / this.cellW))
       const rows = Math.max(4, Math.round(r.h / this.cellH))

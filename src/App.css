@@ -285,6 +285,16 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
   transition: transform 180ms ease;
 }
 
+.sg-scene__next svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--sg-blue);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
 .sg-scene__next:hover { border-color: var(--sg-blue); }
 .sg-scene__next:hover span { transform: translateY(3px); }
 
