@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
@@ -23,6 +23,7 @@ const loadImageSource = (src: string) =>
   })
 
 type SceneConfig = {
+  slug: string
   label: string
   headline?: string[] | string
   text: string
@@ -38,70 +39,97 @@ type SceneConfig = {
 
 const PAGE_SCENES: SceneConfig[] = [
   {
+    slug: 'about-us',
     label: 'ABOUT US',
     headline: ['Guiding Healthcare', 'Solutions'],
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
-    threshold: 0.08,
-    glyph: asset('anonymous', 'png'),
+    threshold: 0.05,
+    glyph: asset('spiral', 'png'),
     background: null,
   },
   {
+    slug: 'early-innovation',
     label: 'EARLY\nINNOVATION',
-    headline: ['Guiding Healthcare', 'Innovation.'],
+    headline: ['Guiding Healthcare', 'Innovation'],
     text: 'We help teams frame the right product opportunity, identify unmet needs, and turn early ideas into a stronger strategic direction.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
     background: null,
   },
   {
+    slug: 'roadmap-alignment',
     label: 'ROADMAP\nALIGNMENT',
-    headline: ['Guiding Healthcare', 'Products.'],
+    headline: ['Guiding Healthcare', 'Products'],
     text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets.',
     threshold: 0.08,
-    glyph: asset('cat', 'png'),
+    glyph: asset('roadmap', 'png'),
     background: null,
   },
   {
+    slug: 'engineering-optimization',
     label: 'ENGINEERING\nOPTIMIZATION',
-    headline: ['Guiding Healthcare', 'Engineering.'],
+    headline: ['Guiding Healthcare', 'Engineering'],
     text: 'We identify the process, capability, and execution gaps that slow delivery so engineering teams can move faster without sacrificing quality.',
     threshold: 0.03,
-    glyph: asset('racecar', 'png'),
+    glyph: asset('head', 'png'),
     background: null,
   },
   {
+    slug: 'target-screening',
     label: 'TARGET\nSCREENING',
-    headline: ['Guiding Healthcare', 'Investments.'],
+    headline: ['Guiding Healthcare', 'Investments'],
     text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value.',
-    threshold: 0.08,
-    glyph: asset('galaxy', 'png'),
+    threshold: 0.05,
+    glyph: asset('bull', 'png'),
     background: null,
   },
   {
+    slug: 'technical-due-diligence',
     label: 'TECHNICAL\nDUE DILIGENCE',
-    headline: ['Guiding Healthcare', 'Technology.'],
+    headline: ['Guiding Healthcare', 'Technology'],
     text: 'We pressure test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
-    threshold: 0.08,
-    glyph: asset('light-bulb', 'png'),
+    threshold: 0.2,
+    glyph: asset('tree', 'png'),
     background: null,
   },
   {
+    slug: 'post-merger-integration',
     label: 'POST MERGER\nINTEGRATION',
-    headline: ['Guiding Healthcare', 'Integration.'],
+    headline: ['Guiding Healthcare', 'Integration'],
     text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum.',
     threshold: 0.08,
-    glyph: asset('brain', 'png'),
+    glyph: asset('circles', 'png'),
     background: null,
   },
   {
+    slug: 'contact-us',
     label: 'CONTACT US',
-    headline: ['Guiding Healthcare', 'Outcomes.'],
+    headline: ['Guiding Healthcare', 'Outcomes'],
     text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791.',
-    threshold: 0.08,
-     glyph: asset('light-bulb', 'png'),
+    threshold: 0.02,
+     glyph: asset('mountain', 'png'),
     background: null,
   },
 ]
+
+const getHeadlineLines = (scene: SceneConfig | undefined) => {
+  if (!scene?.headline) return []
+  if (Array.isArray(scene.headline)) return scene.headline
+  return scene.headline.trim().length > 0 ? scene.headline.split(/\s*\|\s*/) : []
+}
+
+function ActiveHeading({ lines }: { lines: string[] }) {
+  return (
+    <h1 className="sg-head">
+      {lines.map((line, lineIndex) => (
+        <span key={lineIndex} className="sg-head__line">
+          {lineIndex === 1 ? <em>{line}</em> : line}
+          {lineIndex < lines.length - 1 ? ' ' : null}
+        </span>
+      ))}
+    </h1>
+  )
+}
 
 function makeGlyphCanvas(label: string, variation: number) {
   const c = document.createElement('canvas')
@@ -167,10 +195,14 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fieldRef = useRef<GlyphImage | null>(null)
   const chapterRef = useRef(0)
+  const lenisRef = useRef<Lenis | null>(null)
+  const targetSceneRef = useRef<number | null>(null)
+  const initialSceneResolvedRef = useRef(false)
   const reduced = usePrefersReducedMotion()
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [activeSceneIndex, setActiveSceneIndex] = useState(0)
 
+  const active = PAGE_SCENES[activeSceneIndex]
   const visibleBackground = resolveBackground(PAGE_SCENES[activeSceneIndex])
 
   useEffect(() => {
@@ -317,6 +349,7 @@ export default function App() {
   useEffect(() => {
     if (reduced) return
     const lenis = new Lenis({ lerp: 0.085 })
+    lenisRef.current = lenis
     lenis.on('scroll', ScrollTrigger.update)
     const tick = (t: number) => lenis.raf(t * 1000)
     gsap.ticker.add(tick)
@@ -324,12 +357,88 @@ export default function App() {
     return () => {
       gsap.ticker.remove(tick)
       lenis.destroy()
+      lenisRef.current = null
+      targetSceneRef.current = null
     }
   }, [reduced])
+
+  const scrollToScene = useCallback((index: number, immediate = false) => {
+    const scene = trackRef.current?.querySelectorAll<HTMLElement>('.sg-scene')[index]
+    if (!scene) return
+
+    const header = document.querySelector<HTMLElement>('.sg-top')
+    const top = scene.getBoundingClientRect().top + window.scrollY
+      - (header?.getBoundingClientRect().height ?? 0) + 1
+    targetSceneRef.current = index
+
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(top, {
+        immediate,
+        onComplete: () => { targetSceneRef.current = null },
+      })
+    } else {
+      window.scrollTo({ top, behavior: immediate || reduced ? 'instant' : 'smooth' })
+      targetSceneRef.current = null
+    }
+  }, [reduced])
+
+  useEffect(() => {
+    let gestureActive = false
+    let gestureTimer: ReturnType<typeof setTimeout> | undefined
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey
+        || event.deltaY === 0 || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return
+
+      const track = trackRef.current
+      if (!track) return
+      const sections = Array.from(track.querySelectorAll<HTMLElement>('.sg-scene'))
+      const header = document.querySelector<HTMLElement>('.sg-top')
+      const headerHeight = header?.getBoundingClientRect().height ?? 0
+      const positions = sections.map((section) => section.getBoundingClientRect().top + window.scrollY - headerHeight)
+      const lastPosition = positions[positions.length - 1]
+      if (lastPosition === undefined) return
+
+      if (gestureActive) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        clearTimeout(gestureTimer)
+        gestureTimer = setTimeout(() => { gestureActive = false }, 160)
+        return
+      }
+
+      const direction = Math.sign(event.deltaY)
+      let index = 0
+      while (index < positions.length - 1 && positions[index + 1] <= window.scrollY + 2) index += 1
+      const target = targetSceneRef.current ?? index
+      const next = direction < 0 && window.scrollY > lastPosition + 2 && targetSceneRef.current === null
+        ? positions.length - 1
+        : target + direction
+      if (next < 0 || next >= positions.length) return
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      gestureActive = true
+      gestureTimer = setTimeout(() => { gestureActive = false }, 160)
+      scrollToScene(next)
+    }
+
+    window.addEventListener('wheel', onWheel, { capture: true, passive: false })
+    return () => {
+      window.removeEventListener('wheel', onWheel, { capture: true })
+      clearTimeout(gestureTimer)
+    }
+  }, [scrollToScene])
 
   useIsomorphicLayoutEffect(() => {
     const track = trackRef.current
     if (!track) return
+
+    if (!initialSceneResolvedRef.current) {
+      initialSceneResolvedRef.current = true
+      const index = PAGE_SCENES.findIndex((scene) => `#${scene.slug}` === window.location.hash)
+      if (index >= 0) scrollToScene(index, true)
+    }
 
     const ctx = gsap.context(() => {
       const sections = Array.from(track.querySelectorAll<HTMLElement>('.sg-scene'))
@@ -362,11 +471,11 @@ export default function App() {
     return () => {
       ctx.revert()
     }
-  }, [reduced])
+  }, [reduced, scrollToScene])
 
   return (
     <main id="top" className="sg-root" data-state={state} data-active-scene={activeSceneIndex}>
-      <a className="sg-skip" href="#scene-1">Skip to content</a>
+      <a className="sg-skip" href={`#${PAGE_SCENES[0].slug}`}>Skip to content</a>
       <header className="sg-top">
         <a className="sg-top__brand" href="#top">Strata Scientific</a>
         <nav className="sg-top__r" aria-label="Contact">
@@ -401,58 +510,46 @@ export default function App() {
           <canvas ref={canvasRef} className="sg-glyphs" />
           <div className="sg-grain" aria-hidden="true" />
         </div>
+        <div className="sg-headline">
+          <ActiveHeading lines={getHeadlineLines(active)} />
+          <p className="sg-ch">{active.label.replace(/\n/g, ' ')}</p>
+          <p className="sg-copy">
+            {active.text.split(/(hello@stratascientific\.com|\+1 215\.776\.7791)/).map((part, partIndex) => {
+              if (part === 'hello@stratascientific.com') {
+                return <a key={partIndex} href="mailto:hello@stratascientific.com">{part}</a>
+              }
+              if (part === '+1 215.776.7791') {
+                return <a key={partIndex} href="tel:+12157767791">{part}</a>
+              }
+              return part
+            })}
+          </p>
+          {activeSceneIndex < PAGE_SCENES.length - 1 && (
+            <a
+              className="sg-scene__next"
+              href={`#${PAGE_SCENES[activeSceneIndex + 1].slug}`}
+              onClick={(event) => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                event.preventDefault()
+                const index = activeSceneIndex + 1
+                window.history.pushState(null, '', `#${PAGE_SCENES[index].slug}`)
+                scrollToScene(index)
+              }}
+            >
+              Next <span aria-hidden="true">↓</span>
+            </a>
+          )}
+        </div>
         <div className="sg-scenes">
-          {PAGE_SCENES.map((scene, index) => {
-            const headlineLines = Array.isArray(scene.headline)
-              ? scene.headline
-              : (typeof scene.headline === 'string' && scene.headline.trim().length > 0
-                ? scene.headline.split(/\s*\|\s*/)
-                : [])
-            const Heading = index === 0 ? 'h1' : 'h2'
-
-            return (
-              <article
-                id={`scene-${index + 1}`}
-                key={scene.label}
-                className="sg-scene"
-                aria-labelledby={`scene-${index + 1}-heading`}
-              >
-                <div className="sg-scene__content">
-                  {headlineLines.length > 0 && (
-                    <Heading id={`scene-${index + 1}-heading`} className="sg-head">
-                      {headlineLines.map((line, lineIndex) => (
-                        <span key={`${line}-${lineIndex}`} className="sg-head__line">
-                          {lineIndex === 1 ? <em>{line}</em> : line}
-                          {lineIndex < headlineLines.length - 1 ? ' ' : null}
-                        </span>
-                      ))}
-                    </Heading>
-                  )}
-                  <p className="sg-ch">{scene.label.replace(/\n/g, ' ')}</p>
-                  <p className="sg-copy">
-                    {scene.text.split(/(hello@stratascientific\.com|\+1 215\.776\.7791)/).map((part, partIndex) => {
-                      if (part === 'hello@stratascientific.com') {
-                        return <a key={partIndex} href="mailto:hello@stratascientific.com">{part}</a>
-                      }
-                      if (part === '+1 215.776.7791') {
-                        return <a key={partIndex} href="tel:+12157767791">{part}</a>
-                      }
-                      return part
-                    })}
-                  </p>
-                  {index < PAGE_SCENES.length - 1 && (
-                    <a className="sg-scene__next" href={`#scene-${index + 2}`}>
-                      Explore {PAGE_SCENES[index + 1].label.replace(/\n/g, ' ').toLowerCase()}
-                      <span aria-hidden="true">↓</span>
-                    </a>
-                  )}
-                </div>
-                <span className="sg-scene__index" aria-hidden="true">
-                  {String(index + 1).padStart(2, '0')} / {String(PAGE_SCENES.length).padStart(2, '0')}
-                </span>
-              </article>
-            )
-          })}
+          {PAGE_SCENES.map((scene) => (
+            <article
+              id={scene.slug}
+              key={scene.label}
+              className="sg-scene"
+              aria-hidden="true"
+            >
+            </article>
+          ))}
         </div>
       </section>
       {state === 'error' && (

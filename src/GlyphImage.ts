@@ -122,7 +122,7 @@ export class GlyphImage {
     if (!Number.isFinite(W0) || !Number.isFinite(H0) || W0 <= 0 || H0 <= 0) {
       return { x: 0, y: 0, w: 1, h: 1 }
     }
-    const pw = 160
+    const pw = 240
     const ph = Math.max(1, Math.round((pw * H0) / W0))
     const c = document.createElement('canvas')
     c.width = pw
@@ -130,19 +130,26 @@ export class GlyphImage {
     const x = c.getContext('2d', { willReadFrequently: true })!
     x.drawImage(src, 0, 0, pw, ph)
     const d = x.getImageData(0, 0, pw, ph).data
-    let top = 0
-    for (let k = 0; k < d.length; k += 4) top = Math.max(top, d[k] * 0.3 + d[k + 1] * 0.59 + d[k + 2] * 0.11)
-    const lim = top * s.threshold
-    let x0 = pw, y0 = ph, x1 = 0, y1 = 0
+    const lum = (k: number) => d[k] * 0.3 + d[k + 1] * 0.59 + d[k + 2] * 0.11
+    const all: number[] = []
+    for (let k = 0; k < d.length; k += 4) all.push(lum(k))
+    all.sort((p, q) => p - q)
+    const top = all[Math.floor(all.length * 0.985)]
+    const lim = Math.max(top * s.threshold, 8)
+    // ignore stray specks: a row/column only counts if enough of it is lit
+    const rows = new Array(ph).fill(0), cols = new Array(pw).fill(0)
     for (let j = 0; j < ph; j++)
-      for (let i = 0; i < pw; i++) {
-        const k = (j * pw + i) * 4
-        if (d[k] * 0.3 + d[k + 1] * 0.59 + d[k + 2] * 0.11 < lim) continue
-        if (i < x0) x0 = i
-        if (i > x1) x1 = i
-        if (j < y0) y0 = j
-        if (j > y1) y1 = j
-      }
+      for (let i = 0; i < pw; i++)
+        if (lum((j * pw + i) * 4) >= lim) {
+          rows[j]++
+          cols[i]++
+        }
+    const minR = Math.max(2, pw * 0.015), minC = Math.max(2, ph * 0.015)
+    const x0 = cols.findIndex((n) => n >= minC)
+    const x1 = pw - 1 - [...cols].reverse().findIndex((n) => n >= minC)
+    const y0 = rows.findIndex((n) => n >= minR)
+    const y1 = ph - 1 - [...rows].reverse().findIndex((n) => n >= minR)
+    if (x0 < 0 || y0 < 0) return { x: 0, y: 0, w: W0, h: H0 }
     if (x1 <= x0 || y1 <= y0) return { x: 0, y: 0, w: W0, h: H0 }
     const sx = W0 / pw, sy = H0 / ph
     const pad = 2
@@ -157,7 +164,9 @@ export class GlyphImage {
       const crop = this.bounds(s)
       const box = s.rect(this.w, this.h, this.mobile)
       const ar = crop.w / crop.h
-      const fitW = Math.min(box.w, box.h * ar)
+      // normalise by area so wide and tall figures read at a similar size, still capped to the box
+      const areaW = Math.sqrt(box.w * box.h * 0.6 * ar)
+      const fitW = Math.min(areaW, box.w, box.h * ar)
       const r = { cx: box.cx, cy: box.cy, w: fitW, h: fitW / ar }
       const cols = Math.max(4, Math.round(r.w / this.cellW))
       const rows = Math.max(4, Math.round(r.h / this.cellH))
