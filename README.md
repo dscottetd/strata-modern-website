@@ -1,12 +1,12 @@
 # Strata Scientific website
 
-The scene copy lives in `PAGE_SCENES` in `src/App.tsx`. Each scene is rendered
-as readable HTML in document order; the decorative glyph canvas follows the
-sections as they scroll. The layout reserves a separate area for the glyph on
-mobile so it does not obscure the copy.
+The scene copy lives in `PAGE_SCENES` in `src/App.tsx`. The browser handles
+scrolling and scene links natively, without animated page jumps; scroll position
+drives the active copy and decorative glyph transitions. On mobile, the glyph
+has a separate area above the copy. Reduced-motion preferences reduce animation.
 
 `npm run build` prerenders the React app into `dist/index.html` before the
-client hydrates it. This keeps scene content available without JavaScript.
+client hydrates it.
 Run `npm run dev` for local development and `npm run lint` to check the code.
 
 ## Vite template information

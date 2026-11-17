@@ -4,7 +4,7 @@
 
 export type Scene = {
   /** source drawn white-on-black; brightness decides whether a cell is typed and which glyph */
-  source: HTMLCanvasElement | HTMLImageElement | ((mobile: boolean) => HTMLCanvasElement)
+  source: HTMLCanvasElement | HTMLImageElement
   /** size multiplier applied after fitting to the box; 1 (default) is the normal size */
   scale?: number
   threshold: number
@@ -48,8 +48,6 @@ const smooth = (a: number, b: number, v: number) => {
 
 export class GlyphImage {
   reduced = false
-  count = 0
-  onCount?: (n: number) => void
 
   private ctx: CanvasRenderingContext2D
   private atlas = document.createElement('canvas')
@@ -112,13 +110,8 @@ export class GlyphImage {
     })
   }
 
-  /** the bright part of a source, so black margins don't shrink the figure */
-  private src(s: Scene) {
-    return typeof s.source === 'function' ? s.source(this.mobile) : s.source
-  }
-
   private bounds(s: Scene) {
-    const src = this.src(s)
+    const src = s.source
     const W0 = 'naturalWidth' in src ? src.naturalWidth : src.width
     const H0 = 'naturalHeight' in src ? src.naturalHeight : src.height
     if (!Number.isFinite(W0) || !Number.isFinite(H0) || W0 <= 0 || H0 <= 0) {
@@ -178,7 +171,7 @@ export class GlyphImage {
       const cx = c.getContext('2d', { willReadFrequently: true })!
       cx.imageSmoothingEnabled = true
       cx.imageSmoothingQuality = 'high'
-      cx.drawImage(this.src(s), crop.x, crop.y, crop.w, crop.h, 0, 0, cols, rows)
+      cx.drawImage(s.source, crop.x, crop.y, crop.w, crop.h, 0, 0, cols, rows)
       const d = cx.getImageData(0, 0, cols, rows).data
       const lums: number[] = []
       for (let k = 0; k < d.length; k += 4) lums.push((d[k] * 0.3 + d[k + 1] * 0.59 + d[k + 2] * 0.11) / 255)
@@ -228,24 +221,11 @@ export class GlyphImage {
       })
     }
 
-    this.count = sceneCells[0].length
-    this.onCount?.(Math.round(this.visibleCount()))
-  }
-
-  private visibleCount() {
-    const a = Math.floor(this.chapter)
-    const b = Math.min(this.scenes.length - 1, a + 1)
-    const e = this.chapter - a
-    const ca = this.ps.filter((p) => p.t[a]).length
-    const cb = this.ps.filter((p) => p.t[b]).length
-    return (ca + (cb - ca) * e) * (1 - this.release)
   }
 
   setStory(chapter: number, release: number) {
-    const changed = Math.abs(chapter - this.chapter) > 0.01 || Math.abs(release - this.release) > 0.01
     this.chapter = Math.max(0, Math.min(this.scenes.length - 1, chapter))
     this.release = Math.max(0, Math.min(1, release))
-    if (changed) this.onCount?.(Math.round(this.visibleCount()))
   }
 
   pointer(x: number, y: number) {
@@ -286,7 +266,6 @@ export class GlyphImage {
     const bend = Math.sin(Math.PI * e)
     const rel = this.release
     const ptrLive = this.time - this.ptr.t < 1.5
-    const pv = Math.hypot(this.ptr.vx, this.ptr.vy)
     const R = this.mobile ? 70 : 110
     const k = this.reduced ? 120 : 55
     const damp = this.reduced ? 18 : 9
@@ -362,6 +341,5 @@ export class GlyphImage {
     ctx.globalAlpha = 1
     this.ptr.vx *= Math.exp(-dt * 6)
     this.ptr.vy *= Math.exp(-dt * 6)
-    void pv
   }
 }

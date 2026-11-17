@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import Lenis from 'lenis'
 import { GlyphImage, type Scene } from './GlyphImage'
 import './App.css'
 
@@ -25,19 +24,13 @@ const loadImageSource = (src: string) =>
 type SceneConfig = {
   slug: string
   label: string
-  headline?: string[] | string
+  headline: string[]
   text: string
   threshold: number
-  glyph: string | null
+  glyph: string
   /** glyph size multiplier; defaults to 1.0 */
   glyphScale?: number
-  background?: string | { blur?: string; window?: string } | null
 }
-
-// const BG = {
-//   windowBlur: asset('bg-window-blur'),
-//   window: asset('bg-window'),
-// }
 
 const PAGE_SCENES: SceneConfig[] = [
   {
@@ -48,27 +41,24 @@ const PAGE_SCENES: SceneConfig[] = [
     threshold: 0.05,
     glyph: asset('spiral', 'png'),
     glyphScale: 1.0,
-    background: null,
   },
   {
     slug: 'early-innovation',
     label: 'EARLY\nINNOVATION',
     headline: ['Guiding Healthcare', 'Innovation'],
-    text: 'We help teams frame the right product opportunity, identify unmet needs, and turn early ideas into a stronger strategic direction.',
+    text: 'We help teams frame the right product opportunity, identify unmet needs, and turn early ideas into a stronger strategic direction with a clear path forward.',
     threshold: 0.08,
     glyph: asset('light-bulb', 'png'),
     glyphScale: 0.95,
-    background: null,
   },
   {
     slug: 'roadmap-alignment',
     label: 'ROADMAP\nALIGNMENT',
     headline: ['Guiding Healthcare', 'Products'],
-    text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets.',
+    text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets and teams stay focused.',
     threshold: 0.1,
     glyph: asset('hexagon', 'png'),
     glyphScale: 1.1,
-    background: null,
   },
   {
     slug: 'engineering-optimization',
@@ -78,62 +68,80 @@ const PAGE_SCENES: SceneConfig[] = [
     threshold: 0.08,
     glyph: asset('gears', 'png'),
     glyphScale: 0.9,
-    background: null,
   },
   {
     slug: 'target-screening',
     label: 'TARGET\nSCREENING',
     headline: ['Guiding Healthcare', 'Investments'],
-    text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value.',
+    text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value to inform confident decisions.',
     threshold: 0.08,
     glyph: asset('bull', 'png'),
     glyphScale: 0.9,
-    background: null,
   },
   {
     slug: 'technical-due-diligence',
     label: 'TECHNICAL\nDUE DILIGENCE',
     headline: ['Guiding Healthcare', 'Technology'],
-    text: 'We pressure test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
+    text: 'We pressure test the product, technology, and engineering organization to expose risks, reveal the real value behind the deal, and clarify the path forward.',
     threshold: 0.04,
     glyph: asset('science', 'png'),
     glyphScale: 1.0,
-    background: null,
   },
   {
     slug: 'post-merger-integration',
     label: 'POST MERGER\nINTEGRATION',
     headline: ['Guiding Healthcare', 'Integration'],
-    text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum.',
+    text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum with clear ownership.',
     threshold: 0.25,
     glyph: asset('puzzle', 'png'),
     glyphScale: 1.0,
-    background: null,
   },
   {
     slug: 'contact-us',
     label: 'CONTACT US',
     headline: ['Guiding Healthcare', 'Outcomes'],
-    text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791.',
+    text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791. We would be glad to talk.',
     threshold: 0.08,
-     glyph: asset('mountain', 'png'),
-     glyphScale: 1.2,
-    background: null,
+    glyph: asset('mountain', 'png'),
+    glyphScale: 1.2,
   },
 ]
 
-const getHeadlineLines = (scene: SceneConfig | undefined) => {
-  if (!scene?.headline) return []
-  if (Array.isArray(scene.headline)) return scene.headline
-  return scene.headline.trim().length > 0 ? scene.headline.split(/\s*\|\s*/) : []
+function TypedHeadingWord({ word, reduced }: { word: string; reduced: boolean }) {
+  const [visibleLength, setVisibleLength] = useState(reduced ? word.length : 0)
+
+  useEffect(() => {
+    if (reduced) {
+      setVisibleLength(word.length)
+      return
+    }
+
+    setVisibleLength(0)
+    let length = 0
+    const interval = window.setInterval(() => {
+      length += 1
+      setVisibleLength(length)
+      if (length >= word.length) window.clearInterval(interval)
+    }, 75)
+
+    return () => window.clearInterval(interval)
+  }, [reduced, word])
+
+  return (
+    <em>
+      <span className={!reduced && visibleLength < word.length ? 'sg-head__typed' : undefined} aria-hidden="true">
+        {word.slice(0, visibleLength)}
+      </span>
+    </em>
+  )
 }
 
-function ActiveHeading({ lines }: { lines: string[] }) {
+function ActiveHeading({ lines, reduced }: { lines: string[]; reduced: boolean }) {
   return (
-    <h1 className="sg-head">
+    <h1 className="sg-head" aria-label={lines.join(' ')}>
       {lines.map((line, lineIndex) => (
         <span key={lineIndex} className="sg-head__line">
-          {lineIndex === 1 ? <em>{line}</em> : line}
+          {lineIndex === 1 ? <TypedHeadingWord key={line} word={line} reduced={reduced} /> : line}
           {lineIndex < lines.length - 1 ? ' ' : null}
         </span>
       ))}
@@ -172,15 +180,6 @@ function makeGlyphCanvas(label: string, variation: number) {
   return c
 }
 
-const resolveBackground = (scene: SceneConfig | undefined) => {
-  if (!scene?.background) return { blur: null, window: null }
-  if (typeof scene.background === 'string') return { blur: scene.background, window: scene.background }
-  return {
-    blur: scene.background.blur ?? null,
-    window: scene.background.window ?? null,
-  }
-}
-
 const smooth = (a: number, b: number, v: number) => {
   const t = Math.max(0, Math.min(1, (v - a) / (b - a)))
   return t * t * (3 - 2 * t)
@@ -205,15 +204,11 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fieldRef = useRef<GlyphImage | null>(null)
   const chapterRef = useRef(0)
-  const lenisRef = useRef<Lenis | null>(null)
-  const targetSceneRef = useRef<number | null>(null)
-  const initialSceneResolvedRef = useRef(false)
   const reduced = usePrefersReducedMotion()
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [activeSceneIndex, setActiveSceneIndex] = useState(0)
 
   const active = PAGE_SCENES[activeSceneIndex]
-  const visibleBackground = resolveBackground(PAGE_SCENES[activeSceneIndex])
 
   useEffect(() => {
     let alive = true
@@ -358,99 +353,9 @@ export default function App() {
     }
   }, [])
 
-  useEffect(() => {
-    if (reduced) return
-    const lenis = new Lenis({ lerp: 0.085 })
-    lenisRef.current = lenis
-    lenis.on('scroll', ScrollTrigger.update)
-    const tick = (t: number) => lenis.raf(t * 1000)
-    gsap.ticker.add(tick)
-    gsap.ticker.lagSmoothing(0)
-    return () => {
-      gsap.ticker.remove(tick)
-      lenis.destroy()
-      lenisRef.current = null
-      targetSceneRef.current = null
-    }
-  }, [reduced])
-
-  const scrollToScene = useCallback((index: number, immediate = false) => {
-    const scene = trackRef.current?.querySelectorAll<HTMLElement>('.sg-scene')[index]
-    if (!scene) return
-
-    const header = document.querySelector<HTMLElement>('.sg-top')
-    const top = scene.getBoundingClientRect().top + window.scrollY
-      - (header?.getBoundingClientRect().height ?? 0) + 1
-    targetSceneRef.current = index
-
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(top, {
-        immediate,
-        onComplete: () => { targetSceneRef.current = null },
-      })
-    } else {
-      window.scrollTo({ top, behavior: immediate || reduced ? 'instant' : 'smooth' })
-      targetSceneRef.current = null
-    }
-  }, [reduced])
-
-  useEffect(() => {
-    let gestureActive = false
-    let gestureTimer: ReturnType<typeof setTimeout> | undefined
-
-    const onWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey
-        || event.deltaY === 0 || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return
-
-      const track = trackRef.current
-      if (!track) return
-      const sections = Array.from(track.querySelectorAll<HTMLElement>('.sg-scene'))
-      const header = document.querySelector<HTMLElement>('.sg-top')
-      const headerHeight = header?.getBoundingClientRect().height ?? 0
-      const positions = sections.map((section) => section.getBoundingClientRect().top + window.scrollY - headerHeight)
-      const lastPosition = positions[positions.length - 1]
-      if (lastPosition === undefined) return
-
-      if (gestureActive) {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        clearTimeout(gestureTimer)
-        gestureTimer = setTimeout(() => { gestureActive = false }, 160)
-        return
-      }
-
-      const direction = Math.sign(event.deltaY)
-      let index = 0
-      while (index < positions.length - 1 && positions[index + 1] <= window.scrollY + 2) index += 1
-      const target = targetSceneRef.current ?? index
-      const next = direction < 0 && window.scrollY > lastPosition + 2 && targetSceneRef.current === null
-        ? positions.length - 1
-        : target + direction
-      if (next < 0 || next >= positions.length) return
-
-      event.preventDefault()
-      event.stopImmediatePropagation()
-      gestureActive = true
-      gestureTimer = setTimeout(() => { gestureActive = false }, 160)
-      scrollToScene(next)
-    }
-
-    window.addEventListener('wheel', onWheel, { capture: true, passive: false })
-    return () => {
-      window.removeEventListener('wheel', onWheel, { capture: true })
-      clearTimeout(gestureTimer)
-    }
-  }, [scrollToScene])
-
   useIsomorphicLayoutEffect(() => {
     const track = trackRef.current
     if (!track) return
-
-    if (!initialSceneResolvedRef.current) {
-      initialSceneResolvedRef.current = true
-      const index = PAGE_SCENES.findIndex((scene) => `#${scene.slug}` === window.location.hash)
-      if (index >= 0) scrollToScene(index, true)
-    }
 
     const ctx = gsap.context(() => {
       const sections = Array.from(track.querySelectorAll<HTMLElement>('.sg-scene'))
@@ -472,7 +377,7 @@ export default function App() {
       ScrollTrigger.create({
         trigger: track,
         start: 'top bottom',
-        end: 'bottom bottom',
+        end: 'bottom top',
         onUpdate: apply,
         onRefresh: apply,
       })
@@ -483,7 +388,7 @@ export default function App() {
     return () => {
       ctx.revert()
     }
-  }, [reduced, scrollToScene])
+  }, [reduced])
 
   const isLastScene = activeSceneIndex === PAGE_SCENES.length - 1
 
@@ -512,22 +417,12 @@ export default function App() {
       </header>
       <section ref={trackRef} className="sg-track" aria-label="Strata Scientific services">
         <div ref={stageRef} className="sg-stage" aria-hidden="true">
-          <div className="sg-bg" aria-hidden="true">
-            <div className="sg-bg__in">
-              {visibleBackground.blur && (
-                <img className="sg-bg__img sg-bg--wblur" src={visibleBackground.blur} alt="" />
-              )}
-              {visibleBackground.window && (
-                <img className="sg-bg__img sg-bg--window" src={visibleBackground.window} alt="" />
-              )}
-            </div>
-          </div>
           <div className="sg-shade" aria-hidden="true" />
           <canvas ref={canvasRef} className="sg-glyphs" />
           <div className="sg-grain" aria-hidden="true" />
         </div>
         <div className="sg-headline">
-          <ActiveHeading lines={getHeadlineLines(active)} />
+          <ActiveHeading lines={active.headline} reduced={reduced} />
           <p className="sg-ch">{active.label.replace(/\n/g, ' ')}</p>
           <p className="sg-copy">
             {active.text.split(/(hello@stratascientific\.com|\+1 215\.776\.7791)/).map((part, partIndex) => {
@@ -543,13 +438,6 @@ export default function App() {
           <a
             className="sg-scene__next"
             href={`#${PAGE_SCENES[isLastScene ? 0 : activeSceneIndex + 1].slug}`}
-            onClick={(event) => {
-              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-              event.preventDefault()
-              const index = isLastScene ? 0 : activeSceneIndex + 1
-              window.history.pushState(null, '', `#${PAGE_SCENES[index].slug}`)
-              scrollToScene(index)
-            }}
           >
             {isLastScene ? (
               <>
