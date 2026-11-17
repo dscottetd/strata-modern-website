@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 
 // Web API keys for Firebase are public identifiers, not secrets.
@@ -12,8 +12,20 @@ const firebaseConfig = {
   measurementId: 'G-QCTZ39N1P2',
 }
 
-export const app = initializeApp(firebaseConfig)
+export const app: FirebaseApp | null =
+  typeof window !== 'undefined' && import.meta.env.PROD ? initializeApp(firebaseConfig) : null
 
-isSupported().then((ok) => {
-  if (ok) getAnalytics(app)
-})
+export async function initFirebase() {
+  if (!app || typeof window === 'undefined' || !import.meta.env.PROD) return null
+
+  try {
+    const analyticsSupported = await isSupported()
+    if (!analyticsSupported) return null
+    return getAnalytics(app)
+  } catch (error) {
+    console.warn('Firebase analytics could not be initialized:', error)
+    return null
+  }
+}
+
+void initFirebase()

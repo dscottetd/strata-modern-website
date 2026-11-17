@@ -319,7 +319,7 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .sg-head__line { display: block; }
-.sg-head__line + .sg-head__line { margin-top: 0.08em; }
+.sg-head__line + .sg-head__line { margin-top: 0.1em; }
 .sg-head em { color: #a9c8f4; font-weight: 400; }
 .sg-head__typed::after {
   display: inline-block;
