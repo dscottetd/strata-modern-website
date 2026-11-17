@@ -219,8 +219,8 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
   overflow: hidden;
   background-color: var(--sg-bg);
   background-image:
-    linear-gradient(rgba(121, 168, 237, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(121, 168, 237, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(121, 168, 237, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(121, 168, 237, 0.06) 1px, transparent 1px);
   background-position: center top;
   background-size: 80px 80px;
   isolation: isolate;
