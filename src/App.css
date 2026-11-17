@@ -300,7 +300,6 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
   height: calc(100svh - 68px);
   margin-left: max(0px, calc((100% - var(--sg-content-max)) / 2));
   padding: clamp(180px, 24vh, 260px) 0 0 clamp(28px, 5vw, 76px);
-  pointer-events: none;
 }
 
 .sg-headline a { pointer-events: auto; }
@@ -371,7 +370,6 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
   border: 1px solid var(--sg-rule);
   border-radius: 999px;
   background: rgba(121, 168, 237, 0.04);
-  box-shadow: 0 3px 0 rgba(121, 168, 237, 0.2);
   color: var(--sg-cream);
   font: 500 10px/1.5 var(--sg-mono);
   letter-spacing: 0.12em;
@@ -379,7 +377,7 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
   text-transform: uppercase;
   touch-action: manipulation;
   transition: transform 220ms cubic-bezier(0.2, 1.4, 0.4, 1),
-    box-shadow 220ms ease, background-color 180ms ease, border-color 180ms ease;
+    background-color 180ms ease, border-color 180ms ease;
 }
 
 .sg-scene__next span {
@@ -414,7 +412,6 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
   transform: translateY(3px);
   border-color: var(--sg-blue);
   background-color: rgba(121, 168, 237, 0.16);
-  box-shadow: 0 0 0 rgba(121, 168, 237, 0.2);
   transition-duration: 60ms;
 }
 
