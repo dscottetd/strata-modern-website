@@ -9,6 +9,32 @@ has a separate area above the copy. Reduced-motion preferences reduce animation.
 client hydrates it.
 Run `npm run dev` for local development and `npm run lint` to check the code.
 
+## Firebase Hosting deployment
+
+This project is configured for Firebase Hosting. Use these commands when you need
+to deploy the production site again.
+
+```bash
+# one-time login to Firebase (if needed)
+npx firebase-tools login --reauth
+
+# build the production bundle
+npm run build
+
+# deploy only the hosting target
+after the login completes, run:
+npx firebase-tools deploy --only hosting
+```
+
+Or via the package script:
+
+```bash
+npm run deploy
+```
+
+The default Firebase project is `strata-scientific-website` and the hosting
+config is in `firebase.json`.
+
 ## Vite template information
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
