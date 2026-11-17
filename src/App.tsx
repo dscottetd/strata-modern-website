@@ -1,14 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { GlyphImage, type Scene } from './GlyphImage'
+import { PAGE_SCENES } from './scenes'
 import './App.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
-
-const asset = (n: string, ext = 'webp') => new URL(`./assets/${n}.${ext}`, import.meta.url).href
 
 const loadImageSource = (src: string) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -20,92 +19,6 @@ const loadImageSource = (src: string) =>
     img.onerror = () => reject(new Error(`Failed to load image: ${src}`))
     img.src = src
   })
-
-type SceneConfig = {
-  slug: string
-  label: string
-  headline: string[]
-  text: string
-  threshold: number
-  glyph: string
-  /** glyph size multiplier; defaults to 1.0 */
-  glyphScale?: number
-}
-
-const PAGE_SCENES: SceneConfig[] = [
-  {
-    slug: 'about-us',
-    label: 'WHAT WE DO',
-    headline: ['Guiding Healthcare', 'Solutions'],
-    text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
-    threshold: 0.05,
-    glyph: asset('spiral', 'png'),
-    glyphScale: 1.0,
-  },
-  {
-    slug: 'early-innovation',
-    label: 'EARLY\nINNOVATION',
-    headline: ['Guiding Healthcare', 'Innovation'],
-    text: 'We help teams frame the right product opportunity, identify unmet needs, and turn early ideas into a stronger strategic direction with a clear path forward.',
-    threshold: 0.08,
-    glyph: asset('light-bulb', 'png'),
-    glyphScale: 0.95,
-  },
-  {
-    slug: 'roadmap-alignment',
-    label: 'ROADMAP\nALIGNMENT',
-    headline: ['Guiding Healthcare', 'Products'],
-    text: 'We align product priorities, technology choices, and corporate strategy so the roadmap is focused on the highest-value bets and teams stay focused.',
-    threshold: 0.1,
-    glyph: asset('hexagon', 'png'),
-    glyphScale: 1.1,
-  },
-  {
-    slug: 'engineering-optimization',
-    label: 'ENGINEERING\nOPTIMIZATION',
-    headline: ['Guiding Healthcare', 'Engineering'],
-    text: 'We identify the process, capability, and execution gaps that slow delivery so engineering teams can move faster without sacrificing quality.',
-    threshold: 0.08,
-    glyph: asset('gears', 'png'),
-    glyphScale: 0.9,
-  },
-  {
-    slug: 'target-screening',
-    label: 'TARGET\nSCREENING',
-    headline: ['Guiding Healthcare', 'Investments'],
-    text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value to inform confident decisions.',
-    threshold: 0.08,
-    glyph: asset('bull', 'png'),
-    glyphScale: 0.9,
-  },
-  {
-    slug: 'technical-due-diligence',
-    label: 'TECHNICAL\nDUE DILIGENCE',
-    headline: ['Guiding Healthcare', 'Technology'],
-    text: 'We pressure test the product, technology, and engineering organization to expose risks, reveal the real value behind the deal, and clarify the path forward.',
-    threshold: 0.04,
-    glyph: asset('science', 'png'),
-    glyphScale: 1.0,
-  },
-  {
-    slug: 'post-merger-integration',
-    label: 'POST MERGER\nINTEGRATION',
-    headline: ['Guiding Healthcare', 'Integration'],
-    text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum with clear ownership.',
-    threshold: 0.25,
-    glyph: asset('puzzle', 'png'),
-    glyphScale: 1.0,
-  },
-  {
-    slug: 'contact-us',
-    label: 'CONTACT US',
-    headline: ['Guiding Healthcare', 'Outcomes'],
-    text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791. We are here to help.',
-    threshold: 0.08,
-    glyph: asset('mountain', 'png'),
-    glyphScale: 1.2,
-  },
-]
 
 function TypedHeadingWord({ word, reduced }: { word: string; reduced: boolean }) {
   const [visibleLength, setVisibleLength] = useState(reduced ? word.length : 0)
@@ -138,7 +51,7 @@ function TypedHeadingWord({ word, reduced }: { word: string; reduced: boolean })
 
 function ActiveHeading({ lines, reduced }: { lines: string[]; reduced: boolean }) {
   return (
-    <h1 className="sg-head" aria-label={lines.join(' ')}>
+    <h1 className="sg-head" aria-hidden="true">
       {lines.map((line, lineIndex) => (
         <span key={lineIndex} className="sg-head__line">
           {lineIndex === 1 ? <TypedHeadingWord key={line} word={line} reduced={reduced} /> : line}
@@ -185,17 +98,18 @@ const smooth = (a: number, b: number, v: number) => {
   return t * t * (3 - 2 * t)
 }
 
+function subscribeToReducedMotion(onChange: () => void) {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+  mq.addEventListener('change', onChange)
+  return () => mq.removeEventListener('change', onChange)
+}
+
 function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  return useSyncExternalStore(
+    subscribeToReducedMotion,
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () => false,
   )
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const onChange = () => setReduced(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-  return reduced
 }
 
 export default function App() {
@@ -488,7 +402,7 @@ export default function App() {
         </div>
         <div className="sg-headline">
           <ActiveHeading lines={active.headline} reduced={reduced} />
-          <p className="sg-ch">{active.label.replace(/\n/g, ' ')}</p>
+          <p className="sg-ch" aria-hidden="true">{active.label.replace(/\n/g, ' ')}</p>
           <p className="sg-copy">
             {active.text.split(/(hello@stratascientific\.com|\+1 215\.776\.7791)/).map((part, partIndex) => {
               if (part === 'hello@stratascientific.com') {
@@ -497,7 +411,7 @@ export default function App() {
               if (part === '+1 215.776.7791') {
                 return <a key={partIndex} href="tel:+12157767791">{part}</a>
               }
-              return part
+              return <span key={partIndex} aria-hidden="true">{part}</span>
             })}
           </p>
           <a
@@ -521,13 +435,19 @@ export default function App() {
           </a>
         </div>
         <div className="sg-scenes">
-          {PAGE_SCENES.map((scene) => (
+          {PAGE_SCENES.map((scene, index) => (
             <article
               id={scene.slug}
               key={scene.label}
               className="sg-scene"
-              aria-hidden="true"
             >
+              <div className="sg-scene__content">
+                {index === 0
+                  ? <h1>{scene.headline.join(' ')}</h1>
+                  : <h2>{scene.headline.join(' ')}</h2>}
+                <p>{scene.label.replace(/\n/g, ' ')}</p>
+                <p>{scene.text}</p>
+              </div>
             </article>
           ))}
         </div>
@@ -539,7 +459,7 @@ export default function App() {
       )}
       <footer className="sg-footer">
         <div className="sg-footer__content">
-          <div className="sg-footer__left">&copy; 2027 Strata Scientific LLC</div>
+          <div className="sg-footer__left">&copy; {new Date().getFullYear()} Strata Scientific LLC</div>
           <div className="sg-footer__right">All Rights Reserved.</div>
         </div>
       </footer>

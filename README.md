@@ -1,12 +1,15 @@
 # Strata Scientific website
 
-The scene copy lives in `PAGE_SCENES` in `src/App.tsx`. The browser handles
+The scene copy lives in `PAGE_SCENES` in `src/scenes.ts`. The browser handles
 scrolling and scene links natively, without animated page jumps; scroll position
 drives the active copy and decorative glyph transitions. On mobile, the glyph
 has a separate area above the copy. Reduced-motion preferences reduce animation.
 
 `npm run build` prerenders the React app into `dist/index.html` before the
-client hydrates it.
+client hydrates it. Each scene's heading, label, and description are present
+in its article for search engines and assistive technology; the visible
+sticky copy uses the same scene data.
+The build also checks that all eight articles contain their current scene copy.
 Run `npm run dev` for local development and `npm run lint` to check the code.
 
 ## Firebase Hosting deployment
