@@ -100,7 +100,7 @@ const PAGE_SCENES: SceneConfig[] = [
     slug: 'contact-us',
     label: 'CONTACT US',
     headline: ['Guiding Healthcare', 'Outcomes'],
-    text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791. We would be glad to talk.',
+    text: 'Have a healthcare product or technology challenge to discuss? Email hello@stratascientific.com or call +1 215.776.7791. We are here to help.',
     threshold: 0.08,
     glyph: asset('mountain', 'png'),
     glyphScale: 1.2,
@@ -202,11 +202,13 @@ export default function App() {
   const trackRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const sceneMenuButtonRef = useRef<HTMLButtonElement>(null)
   const fieldRef = useRef<GlyphImage | null>(null)
   const chapterRef = useRef(0)
   const reduced = usePrefersReducedMotion()
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [activeSceneIndex, setActiveSceneIndex] = useState(0)
+  const [sceneMenuOpen, setSceneMenuOpen] = useState(false)
 
   const active = PAGE_SCENES[activeSceneIndex]
 
@@ -304,6 +306,19 @@ export default function App() {
   useEffect(() => {
     if (fieldRef.current) fieldRef.current.reduced = reduced
   }, [reduced, state])
+
+  useEffect(() => {
+    if (!sceneMenuOpen) return
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setSceneMenuOpen(false)
+      sceneMenuButtonRef.current?.focus()
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [sceneMenuOpen])
 
   useEffect(() => {
     const track = trackRef.current
@@ -413,6 +428,56 @@ export default function App() {
               <span className="sg-top__label">+1 215.776.7791</span>
             </a>
           </nav>
+          <button
+            ref={sceneMenuButtonRef}
+            className="sg-menu-toggle"
+            type="button"
+            aria-label={sceneMenuOpen ? 'Close scene menu' : 'Open scene menu'}
+            aria-expanded={sceneMenuOpen}
+            aria-controls="scene-menu"
+            onClick={() => setSceneMenuOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          {sceneMenuOpen && (
+            <nav id="scene-menu" className="sg-menu" aria-label="Scenes">
+              <ul>
+                <li>
+                  <a
+                    href={`#${PAGE_SCENES[0].slug}`}
+                    aria-current={activeSceneIndex === 0 ? 'location' : undefined}
+                    onClick={() => setSceneMenuOpen(false)}
+                  >
+                    {PAGE_SCENES[0].label.replace(/\n/g, ' ')}
+                  </a>
+                  <ul className="sg-menu__sublist">
+                    {PAGE_SCENES.slice(1, -1).map((scene, index) => (
+                      <li key={scene.slug}>
+                        <a
+                          href={`#${scene.slug}`}
+                          aria-current={activeSceneIndex === index + 1 ? 'location' : undefined}
+                          onClick={() => setSceneMenuOpen(false)}
+                        >
+                          {scene.label.replace(/\n/g, ' ')}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+                <li>
+                  <a
+                    href={`#${PAGE_SCENES[PAGE_SCENES.length - 1].slug}`}
+                    aria-current={activeSceneIndex === PAGE_SCENES.length - 1 ? 'location' : undefined}
+                    onClick={() => setSceneMenuOpen(false)}
+                  >
+                    {PAGE_SCENES[PAGE_SCENES.length - 1].label.replace(/\n/g, ' ')}
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          )}
         </div>
       </header>
       <section ref={trackRef} className="sg-track" aria-label="Strata Scientific services">

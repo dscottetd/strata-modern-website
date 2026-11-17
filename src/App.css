@@ -59,6 +59,7 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .sg-top__content {
+  position: relative;
   display: flex;
   width: min(100%, var(--sg-content-max));
   min-height: 68px;
@@ -112,8 +113,88 @@ body, button, a { -webkit-tap-highlight-color: transparent; }
   stroke-width: 1.5;
 }
 
+.sg-menu-toggle {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sg-cream);
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.sg-menu-toggle:hover,
+.sg-menu-toggle:focus-visible,
+.sg-menu-toggle[aria-expanded='true'] {
+  color: var(--sg-blue);
+}
+
+.sg-menu-toggle span {
+  width: 14px;
+  height: 1px;
+  background: currentColor;
+}
+
+.sg-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: clamp(20px, 4vw, 64px);
+  z-index: 11;
+  width: min(320px, calc(100vw - 40px));
+  padding: 8px;
+  border: 1px solid var(--sg-rule);
+  background: rgba(7, 11, 16, 0.96);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.sg-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sg-menu ul.sg-menu__sublist {
+  padding-bottom: 4px;
+}
+
+.sg-menu__sublist a {
+  padding-left: 30px;
+  font-size: 0.9em;
+}
+
+.sg-menu__sublist a::before {
+  margin-right: 9px;
+  color: var(--sg-blue);
+  content: '—';
+}
+
+.sg-menu a {
+  display: block;
+  padding: 13px 14px;
+  color: var(--sg-soft);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.sg-menu a:hover,
+.sg-menu a:focus-visible,
+.sg-menu a[aria-current='location'] {
+  background: rgba(121, 168, 237, 0.08);
+  color: var(--sg-blue);
+}
+
 .sg-top a:focus-visible,
-.sg-headline a:focus-visible {
+.sg-top button:focus-visible,
+.sg-headline a:focus-visible,
+.sg-menu a:focus-visible {
   outline: 2px solid var(--sg-blue);
   outline-offset: 5px;
 }

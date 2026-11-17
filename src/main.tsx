@@ -5,6 +5,7 @@ import '@fontsource/instrument-serif/400-italic.css'
 import '@fontsource-variable/inter'
 import '@fontsource/ibm-plex-mono/500.css'
 import App from './App'
+import './firebase'
 
 const root = document.getElementById('root')!
 const app = <StrictMode><App /></StrictMode>
