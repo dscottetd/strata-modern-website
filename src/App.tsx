@@ -42,7 +42,7 @@ type SceneConfig = {
 const PAGE_SCENES: SceneConfig[] = [
   {
     slug: 'about-us',
-    label: 'ABOUT US',
+    label: 'WHAT WE DO',
     headline: ['Guiding Healthcare', 'Solutions'],
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams turn ideas into results by aligning strategy, execution, and growth.',
     threshold: 0.05,
@@ -75,9 +75,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'ENGINEERING\nOPTIMIZATION',
     headline: ['Guiding Healthcare', 'Engineering'],
     text: 'We identify the process, capability, and execution gaps that slow delivery so engineering teams can move faster without sacrificing quality.',
-    threshold: 0.04,
-    glyph: asset('science', 'png'),
-    glyphScale: 1.1,
+    threshold: 0.08,
+    glyph: asset('gears', 'png'),
+    glyphScale: 0.9,
     background: null,
   },
   {
@@ -85,9 +85,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'TARGET\nSCREENING',
     headline: ['Guiding Healthcare', 'Investments'],
     text: 'We evaluate acquisition, partnership, and licensing opportunities through the lens of technology, market fit, and strategic value.',
-    threshold: 0.04,
+    threshold: 0.08,
     glyph: asset('bull', 'png'),
-    glyphScale: 1.1,
+    glyphScale: 0.9,
     background: null,
   },
   {
@@ -95,9 +95,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'TECHNICAL\nDUE DILIGENCE',
     headline: ['Guiding Healthcare', 'Technology'],
     text: 'We pressure test the product, technology, and engineering organization to expose risks and reveal the real value behind the deal.',
-    threshold: 0.1,
-    glyph: asset('micro', 'png'),
-    glyphScale: 0.9,
+    threshold: 0.04,
+    glyph: asset('science', 'png'),
+    glyphScale: 1.0,
     background: null,
   },
   {
@@ -105,9 +105,9 @@ const PAGE_SCENES: SceneConfig[] = [
     label: 'POST MERGER\nINTEGRATION',
     headline: ['Guiding Healthcare', 'Integration'],
     text: 'We help combine teams, product plans, and technical systems so the integration creates real operational and commercial momentum.',
-    threshold: 0.15,
-    glyph: asset('circles', 'png'),
-    glyphScale: 1.1,
+    threshold: 0.25,
+    glyph: asset('puzzle', 'png'),
+    glyphScale: 1.0,
     background: null,
   },
   {
@@ -239,7 +239,7 @@ export default function App() {
             threshold,
             rect: (w, h) => {
               const mobile = window.matchMedia('(max-width: 760px)').matches
-              const hh = mobile ? Math.min(h * 0.86, w * 0.9 / 0.7) : Math.min(h * 0.7, w * 0.4 / 0.7)
+              const hh = mobile ? Math.min(h * 0.96, w * 0.9 / 0.7) : Math.min(h * 0.7, w * 0.4 / 0.7)
               return {
                 cx: mobile ? w * 0.5 : w * 0.75,
                 cy: h * 0.5,
@@ -254,7 +254,7 @@ export default function App() {
         const field = new GlyphImage(canvas, scenes)
         field.reduced = reduced
         fieldRef.current = field
-        field.resize(stage.clientWidth, stage.clientHeight)
+        field.resize(canvas.clientWidth, stage.clientHeight)
         field.setStory(chapterRef.current, 0)
         setState('ready')
 
@@ -276,15 +276,16 @@ export default function App() {
         document.addEventListener('visibilitychange', sync)
         sync()
 
-        let rw = stage.clientWidth
+        let rw = canvas.clientWidth
         let rh = stage.clientHeight
         const ro = new ResizeObserver(() => {
-          if (Math.abs(stage.clientWidth - rw) < 2 && Math.abs(stage.clientHeight - rh) < 2) return
-          rw = stage.clientWidth
+          if (Math.abs(canvas.clientWidth - rw) < 2 && Math.abs(stage.clientHeight - rh) < 2) return
+          rw = canvas.clientWidth
           rh = stage.clientHeight
           field.resize(rw, rh)
         })
         ro.observe(stage)
+        ro.observe(canvas)
 
         cleanup = () => {
           gsap.ticker.remove(tick)
@@ -311,11 +312,11 @@ export default function App() {
 
   useEffect(() => {
     const track = trackRef.current
-    const stage = stageRef.current
-    if (!track || !stage) return
+    const canvas = canvasRef.current
+    if (!track || !canvas) return
 
     const local = (x: number, y: number) => {
-      const r = stage.getBoundingClientRect()
+      const r = canvas.getBoundingClientRect()
       return { x: x - r.left, y: y - r.top }
     }
 
@@ -490,22 +491,24 @@ export default function App() {
     <main id="top" className="sg-root" data-state={state} data-active-scene={activeSceneIndex}>
       <a className="sg-skip" href={`#${PAGE_SCENES[0].slug}`}>Skip to content</a>
       <header className="sg-top">
-        <a className="sg-top__brand" href="#top">Strata Scientific</a>
-        <nav className="sg-top__r" aria-label="Contact">
-          <a href="mailto:hello@stratascientific.com" aria-label="Email Strata Scientific">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <path d="m3 7 9 6 9-6" />
-            </svg>
-            <span className="sg-top__label">hello@stratascientific.com</span>
-          </a>
-          <a href="tel:+12157767791" aria-label="Call Strata Scientific">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.8 2.1Z" />
-            </svg>
-            <span className="sg-top__label">+1 215.776.7791</span>
-          </a>
-        </nav>
+        <div className="sg-top__content">
+          <a className="sg-top__brand" href="#top">Strata Scientific</a>
+          <nav className="sg-top__r" aria-label="Contact">
+            <a href="mailto:hello@stratascientific.com" aria-label="Email Strata Scientific">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+              <span className="sg-top__label">hello@stratascientific.com</span>
+            </a>
+            <a href="tel:+12157767791" aria-label="Call Strata Scientific">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.8 2.1Z" />
+              </svg>
+              <span className="sg-top__label">+1 215.776.7791</span>
+            </a>
+          </nav>
+        </div>
       </header>
       <section ref={trackRef} className="sg-track" aria-label="Strata Scientific services">
         <div ref={stageRef} className="sg-stage" aria-hidden="true">
@@ -551,9 +554,11 @@ export default function App() {
             {isLastScene ? (
               <>
                 Home
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" />
-                </svg>
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7" />
+                  </svg>
+                </span>
               </>
             ) : (
               <>
