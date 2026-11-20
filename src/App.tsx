@@ -93,11 +93,6 @@ function makeGlyphCanvas(label: string, variation: number) {
   return c
 }
 
-const smooth = (a: number, b: number, v: number) => {
-  const t = Math.max(0, Math.min(1, (v - a) / (b - a)))
-  return t * t * (3 - 2 * t)
-}
-
 function subscribeToReducedMotion(onChange: () => void) {
   const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
   mq.addEventListener('change', onChange)
@@ -166,7 +161,7 @@ export default function App() {
         field.reduced = reduced
         fieldRef.current = field
         field.resize(canvas.clientWidth, stage.clientHeight)
-        field.setStory(chapterRef.current, 0)
+        field.setStory(chapterRef.current)
         setState('ready')
 
         let running = false
@@ -294,13 +289,9 @@ export default function App() {
         const positions = sections.map((section) => section.getBoundingClientRect().top - top)
         let index = 0
         while (index < positions.length - 1 && positions[index + 1] <= 0) index += 1
-        const next = positions[index + 1]
-        const distance = next === undefined ? 0 : next - positions[index]
-        const local = distance > 0 ? Math.max(0, Math.min(1, -positions[index] / distance)) : 0
-        const chapter = index + (reduced ? 0 : smooth(0.65, 1, local))
-        chapterRef.current = chapter
+        chapterRef.current = index
         setActiveSceneIndex((current) => (current === index ? current : index))
-        fieldRef.current?.setStory(chapter, 0)
+        fieldRef.current?.setStory(index)
       }
 
       ScrollTrigger.create({

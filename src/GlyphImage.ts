@@ -21,8 +21,12 @@ type P = {
   t: (Cell | null)[]
   fold: Cell[]
   seed: number
-  swirl: number
-  drift: number
+  alpha: number
+  glyph: number
+  startX: number
+  startY: number
+  startAlpha: number
+  startGlyph: number
 }
 
 const GLYPHS = ['.', '·', '-', ':', '+', '=', '/', '\\', '#', '%', '*', '<', '>', '0', '1', '?', '2']
@@ -59,7 +63,7 @@ export class GlyphImage {
   private dpr = 1
   private ps: P[] = []
   private chapter = 0
-  private release = 0
+  private transition = 1
   private time = 0
   private ptr = { x: -9999, y: -9999, vx: 0, vy: 0, t: -99 }
 
@@ -208,24 +212,40 @@ export class GlyphImage {
       const fold = sceneCells.map((cells) => cells[Math.floor((n / N) * cells.length)] ?? { x: this.w / 2, y: this.h / 2, g: 0, a: 0 })
       const prev = old[n]
       const start = t[0] ?? fold[0]
+      const x = prev ? prev.x : start.x + (rnd() - 0.5) * this.w * 0.6
+      const y = prev ? prev.y : start.y + this.h * (0.3 + rnd() * 0.5)
       this.ps.push({
-        x: prev ? prev.x : start.x + (rnd() - 0.5) * this.w * 0.6,
-        y: prev ? prev.y : start.y + this.h * (0.3 + rnd() * 0.5),
+        x,
+        y,
         vx: 0,
         vy: 0,
         t,
         fold,
         seed: rnd(),
-        swirl: (rnd() - 0.5) * 2,
-        drift: 0.5 + rnd(),
+        alpha: prev?.alpha ?? 0,
+        glyph: prev?.glyph ?? start.g,
+        startX: x,
+        startY: y,
+        startAlpha: prev?.alpha ?? 0,
+        startGlyph: prev?.glyph ?? start.g,
       })
     }
-
+    if (this.transition < 1) this.transition = 0
   }
 
-  setStory(chapter: number, release: number) {
-    this.chapter = Math.max(0, Math.min(this.scenes.length - 1, chapter))
-    this.release = Math.max(0, Math.min(1, release))
+  setStory(chapter: number) {
+    const next = Math.max(0, Math.min(this.scenes.length - 1, chapter))
+    if (next === this.chapter) return
+    this.chapter = next
+    this.transition = 0
+    for (const p of this.ps) {
+      p.startX = p.x
+      p.startY = p.y
+      p.startAlpha = p.alpha
+      p.startGlyph = p.glyph
+      p.vx = 0
+      p.vy = 0
+    }
   }
 
   pointer(x: number, y: number) {
@@ -259,12 +279,21 @@ export class GlyphImage {
     dt = Math.min(dt, 1 / 30)
     this.time += dt
 
-    const S = this.scenes.length
-    const a = Math.floor(this.chapter)
-    const b = Math.min(S - 1, a + 1)
-    const e = smooth(0, 1, this.chapter - a)
-    const bend = Math.sin(Math.PI * e)
-    const rel = this.release
+    if (this.reduced && this.transition < 1) {
+      for (const p of this.ps) {
+        const target = p.t[this.chapter] ?? p.fold[this.chapter]
+        p.x = target.x
+        p.y = target.y
+        p.vx = p.vy = 0
+      }
+      this.transition = 1
+    }
+    else this.transition = Math.min(1, this.transition + dt / 1.15)
+    const transitioning = this.transition < 1
+    const scatter = smooth(0, 0.45, this.transition)
+    const assemble = smooth(0.45, 1, this.transition)
+    const blend = smooth(0.25, 0.75, this.transition)
+    const box = this.scenes[this.chapter].rect(this.w, this.h, this.mobile)
     const ptrLive = this.time - this.ptr.t < 1.5
     const R = this.mobile ? 70 : 110
     const k = this.reduced ? 120 : 55
@@ -279,57 +308,52 @@ export class GlyphImage {
     const size = T / this.dpr
 
     for (const p of this.ps) {
-      const A = p.t[a] ?? p.fold[a]
-      const B = p.t[b] ?? p.fold[b]
-      const alphaA = p.t[a] ? A.a : 0
-      const alphaB = p.t[b] ? B.a : 0
-
-      let tx = A.x + (B.x - A.x) * e
-      let ty = A.y + (B.y - A.y) * e
-
-      if (!this.reduced && bend > 0.001) {
-        const dx = B.x - A.x
-        const dy = B.y - A.y
-        const len = Math.hypot(dx, dy) || 1
-        tx += (-dy / len) * bend * p.swirl * Math.min(160, len * 0.45)
-        ty += (dx / len) * bend * p.swirl * Math.min(160, len * 0.45)
-      }
-
-      const r = Math.max(0, Math.min(1, (rel - p.seed * 0.35) / 0.65))
-      if (r > 0) {
-        tx += Math.sin(this.time * 0.7 + p.seed * 20) * 60 * r + p.swirl * 120 * r
-        ty -= r * r * this.h * 0.9 * p.drift
-      }
+      const target = p.t[this.chapter] ?? p.fold[this.chapter]
+      const targetAlpha = p.t[this.chapter] ? target.a : 0
+      let tx = target.x
+      let ty = target.y
 
       if (!this.reduced) {
         tx += Math.sin(this.time * 0.8 + p.seed * 40) * 0.9
         ty += Math.cos(this.time * 0.7 + p.seed * 30) * 0.9
       }
 
-      p.vx += ((tx - p.x) * k - p.vx * damp) * dt
-      p.vy += ((ty - p.y) * k - p.vy * damp) * dt
+      if (transitioning) {
+        p.vx = p.vy = 0
+        const angle = Math.atan2(p.startY - box.cy, p.startX - box.cx) + (p.seed - 0.5) * 1.4
+        const distance = Math.min(this.w, this.h) * (0.05 + p.seed * 0.06)
+        const burstX = p.startX + Math.cos(angle) * distance * scatter
+        const burstY = p.startY + Math.sin(angle) * distance * scatter
+        p.x = burstX + (tx - burstX) * assemble
+        p.y = burstY + (ty - burstY) * assemble
+      } else {
+        p.vx += ((tx - p.x) * k - p.vx * damp) * dt
+        p.vy += ((ty - p.y) * k - p.vy * damp) * dt
 
-      if (ptrLive) {
-        const dx = p.x - this.ptr.x
-        const dy = p.y - this.ptr.y
-        const d2 = dx * dx + dy * dy
-        if (d2 < R * R) {
-          const d = Math.sqrt(d2) + 0.001
-          const f = Math.pow(1 - d / R, 2)
-          p.vx += (dx / d) * f * 5200 * dt + this.ptr.vx * f * 3 * dt
-          p.vy += (dy / d) * f * 5200 * dt + this.ptr.vy * f * 3 * dt
+        if (ptrLive) {
+          const dx = p.x - this.ptr.x
+          const dy = p.y - this.ptr.y
+          const d2 = dx * dx + dy * dy
+          if (d2 < R * R) {
+            const d = Math.sqrt(d2) + 0.001
+            const f = Math.pow(1 - d / R, 2)
+            p.vx += (dx / d) * f * 5200 * dt + this.ptr.vx * f * 3 * dt
+            p.vy += (dy / d) * f * 5200 * dt + this.ptr.vy * f * 3 * dt
+          }
         }
+
+        p.x += p.vx * dt
+        p.y += p.vy * dt
       }
 
-      p.x += p.vx * dt
-      p.y += p.vy * dt
-
-      let alpha = (alphaA + (alphaB - alphaA) * e) * (1 - smooth(0.35, 1, r))
-      if (alpha < 0.02) continue
+      p.alpha = transitioning ? p.startAlpha + (targetAlpha - p.startAlpha) * blend : targetAlpha
+      p.glyph = transitioning && blend < 0.5 ? p.startGlyph : target.g
+      if (p.alpha < 0.02) continue
 
       const speed = Math.abs(p.vx) + Math.abs(p.vy)
-      let g = e < 0.5 ? A.g : B.g
-      if (speed > 260 && !this.reduced) {
+      let alpha = p.alpha
+      let g = p.glyph
+      if ((transitioning || speed > 260) && !this.reduced) {
         g = SCRAMBLE[Math.floor((p.seed * 97 + this.time * 14) % SCRAMBLE.length)]
         alpha = Math.min(1, alpha * 1.1)
       }

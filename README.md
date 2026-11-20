@@ -1,9 +1,10 @@
 # Strata Scientific website
 
 The scene copy lives in `PAGE_SCENES` in `src/scenes.ts`. The browser handles
-scrolling and scene links natively, without animated page jumps; scroll position
-drives the active copy and decorative glyph transitions. On mobile, the glyph
-has a separate area above the copy. Reduced-motion preferences reduce animation.
+scrolling and scene links natively, without animated page jumps; changing scenes
+scatters the decorative glyph particles before they assemble into the next
+figure. On mobile, the glyph has a separate area above the copy. Reduced-motion
+preferences bypass the particle transition.
 
 `npm run build` prerenders the React app into `dist/index.html` before the
 client hydrates it. Each scene's heading, label, and description are present
