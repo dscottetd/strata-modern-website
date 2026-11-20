@@ -44,8 +44,8 @@ export const PAGE_SCENES: SceneConfig[] = [
     label: 'ENGINEERING\nOPTIMIZATION',
     headline: ['Guiding Healthcare', 'Engineering'],
     text: 'We assess the people, processes, and tools behind product development, then identify changes that can improve engineering effectiveness.',
-    threshold: 0.08,
-    glyph: asset('gears', 'png'),
+    threshold: 0.2,
+    glyph: asset('circuit', 'png'),
     glyphScale: 0.9,
   },
   {
@@ -72,7 +72,7 @@ export const PAGE_SCENES: SceneConfig[] = [
     headline: ['Guiding Healthcare', 'Integration'],
     text: 'We help bring teams, product plans, and technology together after a merger, with a focus on supporting growth and reducing costs.',
     threshold: 0.25,
-    glyph: asset('puzzle', 'png'),
+    glyph: asset('pieces', 'png'),
     glyphScale: 1.0,
   },
   {
