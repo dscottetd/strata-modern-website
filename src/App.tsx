@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { GlyphImage, type Scene } from './GlyphImage'
 import { PAGE_SCENES } from './scenes'
+import { setupSceneWheelNavigation } from './sceneWheelNavigation'
 import './App.css'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -109,6 +110,8 @@ function usePrefersReducedMotion() {
 
 export default function App() {
   const trackRef = useRef<HTMLElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
+  const headlineRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const sceneMenuButtonRef = useRef<HTMLButtonElement>(null)
@@ -217,6 +220,15 @@ export default function App() {
   }, [reduced, state])
 
   useEffect(() => {
+    const track = trackRef.current
+    const header = headerRef.current
+    const headline = headlineRef.current
+    if (!track || !header || !headline) return
+
+    return setupSceneWheelNavigation(track, header, headline)
+  }, [])
+
+  useEffect(() => {
     if (!sceneMenuOpen) return
 
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -315,7 +327,7 @@ export default function App() {
   return (
     <main id="top" className="sg-root" data-state={state} data-active-scene={activeSceneIndex}>
       <a className="sg-skip" href={`#${PAGE_SCENES[0].slug}`}>Skip to content</a>
-      <header className="sg-top">
+      <header ref={headerRef} className="sg-top">
         <div className="sg-top__content">
           <a className="sg-top__brand" href="#top">Strata Scientific</a>
           <nav className="sg-top__r" aria-label="Contact">
@@ -391,7 +403,7 @@ export default function App() {
           <canvas ref={canvasRef} className="sg-glyphs" />
           <div className="sg-grain" aria-hidden="true" />
         </div>
-        <div className="sg-headline">
+        <div ref={headlineRef} className="sg-headline">
           <ActiveHeading lines={active.headline} reduced={reduced} />
           <p className="sg-ch" aria-hidden="true">{active.label.replace(/\n/g, ' ')}</p>
           <p className="sg-copy">
