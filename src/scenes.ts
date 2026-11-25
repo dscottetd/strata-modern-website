@@ -19,7 +19,7 @@ export const PAGE_SCENES: SceneConfig[] = [
     text: 'Strata Scientific helps digital health, medical device, and life sciences teams align product strategy and execution to turn ideas into products for growth.',
     threshold: 0.05,
     glyph: asset('spiral', 'png'),
-    glyphScale: 1.0,
+    glyphScale: 0.95,
   },
   {
     slug: 'early-innovation',

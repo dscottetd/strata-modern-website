@@ -19,14 +19,16 @@ function fixture() {
     scrollHeight = 0
     clientHeight = 0
     overflowY = 'visible'
+    interactive = false
+    closest() { return this.interactive ? this : null }
   }
   const body = new Element()
-  let handler
+  const handlers = new Map()
   const win = {
     scrollY: 0,
     innerHeight: 800,
-    addEventListener: (_type, listener) => { handler = listener },
-    removeEventListener: (_type, listener) => { if (handler === listener) handler = undefined },
+    addEventListener: (type, listener) => { handlers.set(type, listener) },
+    removeEventListener: (type, listener) => { if (handlers.get(type) === listener) handlers.delete(type) },
     getComputedStyle: (element) => element,
     scrollTo: ({ top }) => { win.scrollY = top },
   }
@@ -39,7 +41,10 @@ function fixture() {
     offsetHeight: 800,
     getBoundingClientRect: () => ({ top: top + 68 - win.scrollY }),
   }))
-  const track = { querySelectorAll: () => sections }
+  const track = {
+    querySelectorAll: () => sections,
+    getBoundingClientRect: () => ({ bottom: 2468 - win.scrollY }),
+  }
   const header = { getBoundingClientRect: () => ({ height: 68 }) }
   const headline = { scrollHeight: 700, clientHeight: 700 }
   const cleanup = setupSceneWheelNavigation(track, header, headline)
@@ -51,10 +56,22 @@ function fixture() {
       preventDefault() { this.defaultPrevented = true },
       ...options,
     }
-    handler?.(event)
+    handlers.get('wheel')?.(event)
     return event
   }
-  return { win, sections, headline, Element, wheel, cleanup }
+  const touch = (type, options = {}) => {
+    const event = {
+      touches: [{ clientX: 100, clientY: 400 }],
+      target: body,
+      cancelable: true,
+      defaultPrevented: false,
+      preventDefault() { this.defaultPrevented = true },
+      ...options,
+    }
+    handlers.get(type)?.(event)
+    return event
+  }
+  return { win, sections, headline, Element, wheel, touch, cleanup }
 }
 
 test('one pixel-wheel gesture advances one scene and a new gesture advances again', () => {
@@ -63,7 +80,7 @@ test('one pixel-wheel gesture advances one scene and a new gesture advances agai
   assert.equal(win.scrollY, 800)
   assert.equal(wheel({ timeStamp: 20 }).defaultPrevented, true)
   assert.equal(win.scrollY, 800)
-  wheel({ timeStamp: 250 })
+  wheel({ timeStamp: 141 })
   assert.equal(win.scrollY, 1600)
   wheel({ timeStamp: 500, deltaY: -100 })
   assert.equal(win.scrollY, 800)
@@ -80,6 +97,19 @@ test('discrete wheel notches navigate independently and footer remains reachable
   assert.equal(win.scrollY, 1600)
   wheel({ deltaMode: 1, timeStamp: 40, deltaY: -1 })
   assert.equal(win.scrollY, 800)
+})
+
+test('scrolling up from the footer moves to the previous scene without repeating the gesture', () => {
+  const { win, wheel } = fixture()
+  win.scrollY = 1738
+  wheel({ deltaY: -10 })
+  assert.equal(win.scrollY, 800)
+  for (let timeStamp = 100; timeStamp <= 1000; timeStamp += 100) {
+    assert.equal(wheel({ deltaY: -10, timeStamp }).defaultPrevented, true)
+    assert.equal(win.scrollY, 800)
+  }
+  wheel({ deltaY: -10, timeStamp: 1250 })
+  assert.equal(win.scrollY, 0)
 })
 
 test('direction changes and native intermediate positions select the adjacent scene', () => {
@@ -115,4 +145,54 @@ test('native scrolling is preserved for zoom, nested scrollers and oversized lay
   assert.equal(win.scrollY, 0)
   cleanup()
   assert.equal(wheel({ timeStamp: 800 }).defaultPrevented, false)
+})
+
+test('one swipe moves one scene in either direction, including from the footer', () => {
+  const { win, touch } = fixture()
+  touch('touchstart')
+  assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 395 }] }).defaultPrevented, true)
+  assert.equal(win.scrollY, 0)
+  touch('touchmove', { touches: [{ clientX: 100, clientY: 350 }] })
+  touch('touchmove', { touches: [{ clientX: 100, clientY: 100 }] })
+  assert.equal(win.scrollY, 800)
+  touch('touchend', { touches: [] })
+  win.scrollY = 1738
+  touch('touchstart')
+  touch('touchmove', { touches: [{ clientX: 100, clientY: 450 }] })
+  assert.equal(win.scrollY, 800)
+  touch('touchend', { touches: [] })
+  touch('touchstart')
+  touch('touchmove', { touches: [{ clientX: 100, clientY: 450 }] })
+  assert.equal(win.scrollY, 0)
+})
+
+test('swipes leave pinch zoom, horizontal gestures, nested scrollers and oversized content native', () => {
+  const { win, headline, Element, touch, cleanup } = fixture()
+  const point = { clientX: 100, clientY: 400 }
+  touch('touchstart')
+  assert.equal(touch('touchmove', { touches: [point, point] }).defaultPrevented, false)
+  assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 300 }] }).defaultPrevented, false)
+  touch('touchstart')
+  assert.equal(touch('touchmove', { touches: [{ clientX: 200, clientY: 390 }] }).defaultPrevented, false)
+  const nested = new Element()
+  nested.overflowY = 'auto'
+  nested.scrollHeight = 200
+  nested.clientHeight = 100
+  touch('touchstart', { target: nested })
+  assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 300 }] }).defaultPrevented, false)
+  headline.scrollHeight = 800
+  touch('touchstart')
+  assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 300 }] }).defaultPrevented, false)
+  headline.scrollHeight = 700
+  const link = new Element()
+  link.interactive = true
+  touch('touchstart', { target: link })
+  assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 300 }] }).defaultPrevented, false)
+  win.scrollY = 1600
+  touch('touchstart')
+  assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 300 }] }).defaultPrevented, false)
+  cleanup()
+  touch('touchstart')
+  assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 300 }] }).defaultPrevented, false)
+  assert.equal(win.scrollY, 1600)
 })
