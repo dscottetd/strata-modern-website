@@ -1,8 +1,9 @@
 # Strata Scientific website
 
 The scene copy lives in `PAGE_SCENES` in `src/scenes.ts`. A mouse-wheel or
-trackpad gesture or vertical touch swipe moves one scene at a time. Keyboard,
-scene links, pinch-to-zoom, and scrolling in oversized layouts remain native.
+trackpad gesture, vertical touch swipe, or Up/Down arrow-key press moves one scene
+at a time. Holding an arrow key does not repeat scene navigation. Interactive
+controls, scene links, pinch-to-zoom, and scrolling in oversized layouts remain native.
 Scrolling past the final scene
 reaches the footer; scrolling up from there returns to the previous scene.
 Changing scenes scatters the decorative glyph particles

@@ -7,6 +7,7 @@ export function setupSceneWheelNavigation(track: HTMLElement, header: HTMLElemen
   let lastWheelTime = -Infinity
   let gestureDirection = 0
   let handledGesture = false
+  const handledKeys = new Set<string>()
   let touch: { x: number; y: number; target: EventTarget | null; direction: number; destination: number | null; moved: boolean } | null = null
 
   const sceneDestination = (direction: number, target: EventTarget | null): number | null => {
@@ -102,16 +103,43 @@ export function setupSceneWheelNavigation(track: HTMLElement, header: HTMLElemen
 
   const onTouchEnd = () => { touch = null }
 
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.defaultPrevented || !event.cancelable || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    if (event.target instanceof Element && event.target.closest('a, button, input, select, textarea, summary, audio[controls], video[controls], [contenteditable], [role="slider"], [role="spinbutton"], [role="listbox"], [role="menu"], [role="menuitem"], [role="tab"], [role="tree"], [role="grid"]')) return
+
+    if (event.repeat) {
+      if (handledKeys.has(event.key)) event.preventDefault()
+      return
+    }
+
+    const destination = sceneDestination(event.key === 'ArrowDown' ? 1 : -1, event.target)
+    if (destination === null) return
+
+    event.preventDefault()
+    handledKeys.add(event.key)
+    window.scrollTo({ top: destination, behavior: 'instant' })
+  }
+
+  const onKeyUp = (event: KeyboardEvent) => { handledKeys.delete(event.key) }
+  const onBlur = () => { handledKeys.clear() }
+
   window.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('touchstart', onTouchStart, { passive: true })
   window.addEventListener('touchmove', onTouchMove, { passive: false })
   window.addEventListener('touchend', onTouchEnd)
   window.addEventListener('touchcancel', onTouchEnd)
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keyup', onKeyUp)
+  window.addEventListener('blur', onBlur)
   return () => {
     window.removeEventListener('wheel', onWheel)
     window.removeEventListener('touchstart', onTouchStart)
     window.removeEventListener('touchmove', onTouchMove)
     window.removeEventListener('touchend', onTouchEnd)
     window.removeEventListener('touchcancel', onTouchEnd)
+    window.removeEventListener('keydown', onKeyDown)
+    window.removeEventListener('keyup', onKeyUp)
+    window.removeEventListener('blur', onBlur)
   }
 }

@@ -291,13 +291,20 @@ export default function App() {
 
   useIsomorphicLayoutEffect(() => {
     const track = trackRef.current
-    if (!track) return
+    const header = headerRef.current
+    if (!track || !header) return
+
+    const updateHeaderHeight = () => {
+      track.style.setProperty('--sg-header-height', `${header.getBoundingClientRect().height}px`)
+    }
+    updateHeaderHeight()
+    const headerObserver = new ResizeObserver(updateHeaderHeight)
+    headerObserver.observe(header)
 
     const ctx = gsap.context(() => {
       const sections = Array.from(track.querySelectorAll<HTMLElement>('.sg-scene'))
       const apply = () => {
-        const header = document.querySelector<HTMLElement>('.sg-top')
-        const top = header?.getBoundingClientRect().height ?? 0
+        const top = header.getBoundingClientRect().height
         const positions = sections.map((section) => section.getBoundingClientRect().top - top)
         let index = 0
         while (index < positions.length - 1 && positions[index + 1] <= 0) index += 1
@@ -318,6 +325,8 @@ export default function App() {
     }, stageRef)
 
     return () => {
+      headerObserver.disconnect()
+      track.style.removeProperty('--sg-header-height')
       ctx.revert()
     }
   }, [reduced])

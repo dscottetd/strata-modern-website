@@ -71,7 +71,19 @@ function fixture() {
     handlers.get(type)?.(event)
     return event
   }
-  return { win, sections, headline, Element, wheel, touch, cleanup }
+  const key = (type, options = {}) => {
+    const event = {
+      key: 'ArrowDown', repeat: false, cancelable: true,
+      ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, target: body,
+      defaultPrevented: false,
+      preventDefault() { this.defaultPrevented = true },
+      ...options,
+    }
+    handlers.get(type)?.(event)
+    return event
+  }
+  const blur = () => handlers.get('blur')?.()
+  return { win, sections, headline, Element, wheel, touch, key, blur, cleanup }
 }
 
 test('one pixel-wheel gesture advances one scene and a new gesture advances again', () => {
@@ -195,4 +207,55 @@ test('swipes leave pinch zoom, horizontal gestures, nested scrollers and oversiz
   touch('touchstart')
   assert.equal(touch('touchmove', { touches: [{ clientX: 100, clientY: 300 }] }).defaultPrevented, false)
   assert.equal(win.scrollY, 1600)
+})
+
+test('arrow presses navigate scenes once until release, including from the footer', () => {
+  const { win, key } = fixture()
+  assert.equal(key('keydown').defaultPrevented, true)
+  assert.equal(win.scrollY, 800)
+  assert.equal(key('keydown', { repeat: true }).defaultPrevented, true)
+  assert.equal(win.scrollY, 800)
+  key('keyup')
+  key('keydown')
+  assert.equal(win.scrollY, 1600)
+  key('keyup')
+  assert.equal(key('keydown').defaultPrevented, false)
+  assert.equal(key('keydown', { repeat: true }).defaultPrevented, false)
+  win.scrollY = 1738
+  assert.equal(key('keydown', { key: 'ArrowUp' }).defaultPrevented, true)
+  assert.equal(win.scrollY, 800)
+  key('keyup', { key: 'ArrowUp' })
+  key('keydown', { key: 'ArrowUp' })
+  assert.equal(win.scrollY, 0)
+  key('keyup', { key: 'ArrowUp' })
+  assert.equal(key('keydown', { key: 'ArrowUp' }).defaultPrevented, false)
+})
+
+test('arrow navigation preserves native control and scrolling behavior', () => {
+  const { win, sections, headline, Element, key, blur, cleanup } = fixture()
+  const control = new Element()
+  control.interactive = true
+  assert.equal(key('keydown', { target: control }).defaultPrevented, false)
+  const nested = new Element()
+  nested.overflowY = 'auto'
+  nested.scrollHeight = 200
+  nested.clientHeight = 100
+  assert.equal(key('keydown', { target: nested }).defaultPrevented, false)
+  for (const options of [{ ctrlKey: true }, { metaKey: true }, { altKey: true }, { shiftKey: true }, { key: 'PageDown' }, { cancelable: false }, { defaultPrevented: true }]) {
+    key('keydown', options)
+    assert.equal(win.scrollY, 0)
+  }
+  headline.scrollHeight = 702
+  assert.equal(key('keydown').defaultPrevented, false)
+  headline.scrollHeight = 700
+  sections[0].offsetHeight = 900
+  assert.equal(key('keydown').defaultPrevented, false)
+  sections[0].offsetHeight = 800
+  key('keydown')
+  assert.equal(win.scrollY, 800)
+  blur()
+  assert.equal(key('keydown', { repeat: true }).defaultPrevented, false)
+  cleanup()
+  assert.equal(key('keydown').defaultPrevented, false)
+  assert.equal(win.scrollY, 800)
 })
